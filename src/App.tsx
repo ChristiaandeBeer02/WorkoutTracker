@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { BottomNav, type AppView } from "./components/BottomNav";
+import { BottomNav, loadAppView, saveAppView, type AppView } from "./components/BottomNav";
 import { DataTable } from "./components/DataTable";
 import { ExerciseSheet } from "./components/ExerciseSheet";
 import { Figure } from "./components/Figure";
@@ -37,12 +37,18 @@ function dayColor(colors: Record<DayKey, string>, day: DayId): string {
 }
 
 export function App() {
-  const [view, setView] = useState<AppView>("home");
+  const [view, setView] = useState<AppView>(loadAppView);
+
+  function changeView(next: AppView) {
+    setView(next);
+    saveAppView(next);
+  }
+
   return (
     <>
       <RestBar />
       {view === "home" ? <Page /> : <Tracker />}
-      <BottomNav view={view} onChange={setView} />
+      <BottomNav view={view} onChange={changeView} />
     </>
   );
 }
