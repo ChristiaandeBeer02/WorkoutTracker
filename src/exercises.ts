@@ -29,13 +29,17 @@ export function exerciseImageUrl(path: string): string {
   return `${EXERCISE_IMAGE_BASE}${encoded}`;
 }
 
+export function normaliseExerciseName(name: string): string {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 const BY_NAME = new Map<string, CatalogueExercise>();
 for (const exercise of EXERCISE_CATALOGUE) {
-  BY_NAME.set(exercise.name.trim().toLowerCase(), exercise);
+  BY_NAME.set(normaliseExerciseName(exercise.name), exercise);
 }
 
 export function catalogueByName(name: string): CatalogueExercise | undefined {
-  return BY_NAME.get(name.trim().toLowerCase());
+  return BY_NAME.get(normaliseExerciseName(name));
 }
 
 /** Plan names kept because the catalogue has no matching movement. */

@@ -1,5 +1,6 @@
 import type { MuscleGroup } from "./anatomy";
 import type { TrackerDay } from "./days";
+import { customByName } from "./customExercises";
 import { catalogueByName, exerciseIsCardio, labelize, type CatalogueExercise } from "./exercises";
 export { labelize };
 import { OPACITY } from "./colors";
@@ -67,9 +68,9 @@ export function musclesForDay(day: TrackerDay): DayMuscles {
   const seen = new Set<string>();
   const seenSecondary = new Set<string>();
   for (const card of cardsForDay(day.id)) {
-    const exercise = catalogueByName(card.name);
+    const exercise = workedForName(card.name);
     if (!exercise) continue;
-    for (const name of exercise.primaryMuscles) {
+    for (const name of exercise.primary) {
       const key = name.trim().toLowerCase();
       if (key && !seen.has(key)) {
         seen.add(key);
@@ -77,7 +78,7 @@ export function musclesForDay(day: TrackerDay): DayMuscles {
       }
       for (const group of DB_MUSCLE_REGIONS[name] ?? []) primary.add(group);
     }
-    for (const name of exercise.secondaryMuscles) {
+    for (const name of exercise.secondary) {
       const key = name.trim().toLowerCase();
       if (key && !seen.has(key) && !seenSecondary.has(key)) {
         seenSecondary.add(key);
@@ -137,6 +138,10 @@ export function paintDays(days: TrackerDay[]): Paint {
   return paint;
 }
 
+export function paintWorked(names: readonly string[], color = "var(--accent)"): Paint {
+  return paintAll(regionsFor(names), color, OPACITY.primary);
+}
+
 export function paintExercise(exercise: CatalogueExercise | null | undefined): Paint {
   const muscles = musclesForExercise(exercise);
   return {
@@ -145,8 +150,21 @@ export function paintExercise(exercise: CatalogueExercise | null | undefined): P
   };
 }
 
+function workedForName(name: string): { primary: string[]; secondary: string[] } | null {
+  const catalogue = catalogueByName(name);
+  if (catalogue) return { primary: catalogue.primaryMuscles, secondary: catalogue.secondaryMuscles };
+  const custom = customByName(name);
+  if (!custom) return null;
+  return { primary: custom.muscles, secondary: [] };
+}
+
+export function nameTrainsCardio(name: string): boolean {
+  if (exerciseIsCardio(name)) return true;
+  return customByName(name)?.cardio === true;
+}
+
 export function dayHasCardio(day: TrackerDay): boolean {
   return cardsForDay(day.id).some(
-    (card) => exerciseIsCardio(card.name) || card.options.some((option) => exerciseIsCardio(option)),
+    (card) => nameTrainsCardio(card.name) || card.options.some((option) => nameTrainsCardio(option)),
   );
 }

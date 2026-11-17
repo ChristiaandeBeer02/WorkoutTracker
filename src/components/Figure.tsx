@@ -1,15 +1,16 @@
-import { Fragment } from "react";
-import { BACK, BACK_BODY, FRONT, FRONT_BODY } from "../anatomy";
+import { BACK, BACK_BODY, FRONT, FRONT_BODY, type MuscleGroup } from "../anatomy";
 import type { Paint } from "../paint";
 
 export function Figure({
   paint,
   height,
   label = "Muscle map, front and back",
+  onPick,
 }: {
   paint: Paint;
   height?: number;
   label?: string;
+  onPick?: (group: MuscleGroup) => void;
 }) {
   const body = (outline: string, shapes: typeof FRONT, dx: number) => (
     <g transform={`translate(${dx} 0)`}>
@@ -17,7 +18,11 @@ export function Figure({
       {shapes.map(([group, d], index) => {
         const mark = paint[group];
         return (
-          <Fragment key={index}>
+          <g
+            key={index}
+            onClick={onPick ? () => onPick(group) : undefined}
+            style={onPick ? { cursor: "pointer" } : undefined}
+          >
             <path
               d={d}
               fill="var(--neutral)"
@@ -35,7 +40,7 @@ export function Figure({
                 strokeLinejoin="round"
               />
             ) : null}
-          </Fragment>
+          </g>
         );
       })}
     </g>

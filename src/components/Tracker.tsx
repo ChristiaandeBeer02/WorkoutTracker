@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { dayById, isPlanDay, loadDays, nextDay, type TrackerDay } from "../days";
+import { loadCustomExercises } from "../customExercises";
 import { catalogueNameMatches } from "../exercises";
 import { ManageDays } from "./ManageDays";
 import { startRestIfIdle } from "../restBridge";
@@ -131,6 +132,7 @@ export function Tracker() {
     };
     for (const option of card.options) consider(option);
     for (const name of Object.keys(stats)) consider(name);
+    for (const item of loadCustomExercises()) consider(item.name);
     for (const name of catalogueNameMatches(query, seen)) matches.push(name);
     return matches;
   }

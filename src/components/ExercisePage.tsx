@@ -5,13 +5,21 @@ import {
   EXERCISE_CATALOGUE,
   catalogueByName,
   exerciseImageUrl,
-  exerciseIsCardio,
   labelize,
   type CatalogueExercise,
 } from "../exercises";
+import {
+  customByName,
+  deleteCustomExercise,
+  loadCustomExercises,
+  saveCustomExercise,
+  type CustomExercise,
+} from "../customExercises";
+import { normaliseExerciseName } from "../exercises";
 import { loadDays } from "../days";
 import { Figure } from "./Figure";
-import { paintExercise } from "../muscles";
+import { MuscleEditor } from "./MuscleEditor";
+import { nameTrainsCardio, paintExercise, paintWorked } from "../muscles";
 import { appendExerciseToDay, cardsForDay, loadTrackerDay } from "../trackerStore";
 
 type DayFilter = string;
@@ -20,18 +28,13 @@ interface Row {
   key: string;
   name: string;
   exercise: CatalogueExercise | null;
+  custom: CustomExercise | null;
 }
 
 function muscleText(exercise: CatalogueExercise, kind: "primaryMuscles" | "secondaryMuscles"): string {
   const names = exercise[kind];
   if (names.length === 0) return "None";
   return names.map(labelize).join(", ");
-}
-
-function matchesMuscle(exercise: CatalogueExercise | null, muscle: string): boolean {
-  if (muscle === "all") return true;
-  if (!exercise) return false;
-  return exercise.primaryMuscles.includes(muscle) || exercise.secondaryMuscles.includes(muscle);
 }
 
 function matchesEquipment(exercise: CatalogueExercise | null, equipment: string): boolean {
@@ -45,6 +48,7 @@ export function ExercisePage() {
   const [muscle, setMuscle] = useState("all");
   const [equipment, setEquipment] = useState("all");
   const [day, setDay] = useState<DayFilter>("all");
+  const [list, setList] = useState<"all" | "custom">("all");
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [addDay, setAddDay] = useState(loadTrackerDay);
   const days = loadDays();
@@ -53,26 +57,45 @@ export function ExercisePage() {
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
+    const customRows: Row[] = loadCustomExercises().map((item) => ({
+      key: `custom:${normaliseExerciseName(item.name)}`,
+      name: item.name,
+      exercise: null,
+      custom: item,
+    }));
+    const catalogueRows: Row[] = EXERCISE_CATALOGUE.map((exercise) => ({
+      key: exercise.id,
+      name: exercise.name,
+      exercise,
+      custom: null,
+    }));
     const source: Row[] =
-      day === "all"
-        ? EXERCISE_CATALOGUE.map((exercise) => ({
-            key: exercise.id,
-            name: exercise.name,
-            exercise,
-          }))
-        : cardsForDay(day).map((card, index) => ({
-            key: `${day}:${card.id}:${index}`,
-            name: card.name.trim() || "Untitled",
-            exercise: catalogueByName(card.name) ?? null,
-          }));
+      list === "custom"
+        ? customRows
+        : day === "all"
+          ? [...customRows, ...catalogueRows]
+          : cardsForDay(day).map((card, index) => {
+              const name = card.name.trim() || "Untitled";
+              return {
+                key: `${day}:${card.id}:${index}`,
+                name,
+                exercise: catalogueByName(name) ?? null,
+                custom: customByName(name) ?? null,
+              };
+            });
 
     return source.filter((row) => {
       if (needle && !row.name.toLowerCase().includes(needle)) return false;
-      if (!matchesMuscle(row.exercise, muscle)) return false;
+      if (muscle !== "all") {
+        const worked = row.exercise?.primaryMuscles ?? row.custom?.muscles ?? [];
+        const also = row.exercise?.secondaryMuscles ?? [];
+        if (!worked.includes(muscle) && !also.includes(muscle)) return false;
+      }
+      if (row.custom) return equipment === "all";
       if (!matchesEquipment(row.exercise, equipment)) return false;
       return true;
     });
-  }, [query, muscle, equipment, day, revision]);
+  }, [query, muscle, equipment, day, list, revision]);
 
   const open = rows.find((row) => row.key === openKey) ?? null;
 
@@ -128,6 +151,7 @@ export function ExercisePage() {
           onAddDay={setAddDay}
           onAdd={addOpenToDay}
           onBack={requestBack}
+          onCustomChange={() => setRevision((value) => value + 1)}
         />
       ) : (
         <>
@@ -142,6 +166,19 @@ export function ExercisePage() {
             />
           </label>
           <div className="ex-filters">
+            <label>
+              List
+              <select
+                value={list}
+                onChange={(event) => {
+                  setList(event.target.value as "all" | "custom");
+                  setOpenKey(null);
+                }}
+              >
+                <option value="all">All</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
             <label>
               Muscle
               <select value={muscle} onChange={(event) => setMuscle(event.target.value)}>
@@ -194,9 +231,11 @@ export function ExercisePage() {
                   <button type="button" onClick={() => openExercise(row.key)}>
                     <span className="ex-list-name">{row.name}</span>
                     <span className="ex-list-meta">
-                      {row.exercise
-                        ? row.exercise.primaryMuscles.map(labelize).join(", ") || labelize(row.exercise.category)
-                        : "On this day"}
+                      {row.custom
+                        ? "Custom"
+                        : row.exercise
+                          ? row.exercise.primaryMuscles.map(labelize).join(", ") || labelize(row.exercise.category)
+                          : "On this day"}
                     </span>
                   </button>
                 </li>
@@ -217,6 +256,7 @@ function ExerciseDetail({
   onAddDay,
   onAdd,
   onBack,
+  onCustomChange,
 }: {
   row: Row;
   addDay: string;
@@ -225,8 +265,23 @@ function ExerciseDetail({
   onAddDay: (day: string) => void;
   onAdd: () => void;
   onBack: () => void;
+  onCustomChange: () => void;
 }) {
   const exercise = row.exercise;
+  if (row.custom) {
+    return (
+      <CustomDetail
+        item={row.custom}
+        addDay={addDay}
+        notice={notice}
+        days={days}
+        onAddDay={onAddDay}
+        onAdd={onAdd}
+        onBack={onBack}
+        onCustomChange={onCustomChange}
+      />
+    );
+  }
   const [imageFailed, setImageFailed] = useState(false);
   const photo = exercise?.images[0];
 
@@ -236,7 +291,7 @@ function ExerciseDetail({
         ‹ Back
       </button>
       <h2>{row.name}</h2>
-      {exerciseIsCardio(row.name) ? <p className="heart-line">Heart & lungs</p> : null}
+      {nameTrainsCardio(row.name) ? <p className="heart-line">Heart & lungs</p> : null}
       {exercise ? (
         <>
           <p className="ex-detail-meta">
@@ -290,6 +345,97 @@ function ExerciseDetail({
           </select>
         </label>
         <button type="button" onClick={onAdd} disabled={row.name === "Untitled"}>
+          Add
+        </button>
+      </div>
+      {notice ? <p className="tracker-notice">{notice}</p> : null}
+    </article>
+  );
+}
+
+function CustomDetail({
+  item,
+  addDay,
+  notice,
+  days,
+  onAddDay,
+  onAdd,
+  onBack,
+  onCustomChange,
+}: {
+  item: CustomExercise;
+  addDay: string;
+  notice: string;
+  days: Array<{ id: string; name: string }>;
+  onAddDay: (day: string) => void;
+  onAdd: () => void;
+  onBack: () => void;
+  onCustomChange: () => void;
+}) {
+  const [muscles, setMuscles] = useState(item.muscles);
+  const [cardio, setCardio] = useState(item.cardio);
+  const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  return (
+    <article className="ex-detail">
+      <button type="button" className="text-back" onClick={onBack}>
+        ‹ Back
+      </button>
+      <h2>{item.name}</h2>
+      <p className="ex-detail-meta">Custom</p>
+      {cardio ? <p className="heart-line">Heart & lungs</p> : null}
+      <div className="ex-figure">
+        <Figure paint={paintWorked(muscles)} height={180} label={`${item.name} muscles`} />
+      </div>
+      <MuscleEditor
+        muscles={muscles}
+        cardio={cardio}
+        onChange={(next) => {
+          setMuscles(next.muscles);
+          setCardio(next.cardio);
+          setSaved(false);
+        }}
+      />
+      <button
+        type="button"
+        className="manage-save map-save"
+        onClick={() => {
+          saveCustomExercise({ name: item.name, muscles, cardio });
+          setSaved(true);
+          onCustomChange();
+        }}
+      >
+        Save
+      </button>
+      {saved ? <p className="tracker-notice">Saved</p> : null}
+      <button
+        type="button"
+        className={confirmDelete ? "remove-workout confirm" : "remove-workout"}
+        onClick={() => {
+          if (!confirmDelete) {
+            setConfirmDelete(true);
+            return;
+          }
+          deleteCustomExercise(item.name);
+          onCustomChange();
+          onBack();
+        }}
+      >
+        {confirmDelete ? "Delete?" : "Delete"}
+      </button>
+      <div className="add-day">
+        <label>
+          Add to
+          <select value={addDay} onChange={(event) => onAddDay(event.target.value)}>
+            {days.map((day) => (
+              <option key={day.id} value={day.id}>
+                {day.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" onClick={onAdd}>
           Add
         </button>
       </div>

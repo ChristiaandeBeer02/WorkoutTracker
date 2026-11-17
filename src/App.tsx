@@ -5,7 +5,9 @@ import { Figure } from "./components/Figure";
 import { RestBar } from "./components/RestBar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Tracker } from "./components/Tracker";
+import { linkWarning, unmappedOnDay } from "./customExercises";
 import { loadDays } from "./days";
+import { MapDialog } from "./components/MuscleEditor";
 import { coveredAcrossDays, dayHasCardio, labelize, missingAcrossDays, musclesForDay, paintDays } from "./muscles";
 import { loadDayLog, type DayLog, type SetStat } from "./trackerStore";
 import type { Paint } from "./paint";
@@ -37,13 +39,17 @@ function formatWhen(iso: string): string {
 function Page() {
   const { colors, setColor, resetColors } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mapDayId, setMapDayId] = useState<string | null>(null);
+  const [, refreshCustom] = useState(0);
   const days = loadDays();
   const cards = days.map((day) => ({
     day,
     log: loadDayLog(day.id),
     muscles: musclesForDay(day),
     cardio: dayHasCardio(day),
+    unmapped: unmappedOnDay(day),
   }));
+  const mapDay = cards.find((card) => card.day.id === mapDayId) ?? null;
   const paint = paintDays(days);
   const covered = coveredAcrossDays(days);
   const missing = missingAcrossDays(days);
@@ -99,6 +105,21 @@ function Page() {
             )}
           </MuscleBox>
         </div>
+        {cards.some((card) => card.unmapped.length > 0) ? (
+          <p className="map-warn">
+            ⚠ No muscles linked:{" "}
+            {cards
+              .filter((card) => card.unmapped.length > 0)
+              .map((card, index) => (
+                <span key={card.day.id}>
+                  {index > 0 ? ", " : null}
+                  <button type="button" onClick={() => setMapDayId(card.day.id)}>
+                    {card.day.name}
+                  </button>
+                </span>
+              ))}
+          </p>
+        ) : null}
       </section>
 
       <section className="section" aria-labelledby="last-heading">
@@ -110,13 +131,23 @@ function Page() {
               name={card.day.name}
               color={card.day.color}
               muscles={card.muscles.names}
-              cardio={card.cardio}
-              log={card.log}
-              paint={paintDays([card.day])}
-            />
+                cardio={card.cardio}
+                log={card.log}
+                paint={paintDays([card.day])}
+                warning={card.unmapped.length > 0 ? linkWarning(card.unmapped.length, card.day.name) : ""}
+                onWarn={() => setMapDayId(card.day.id)}
+              />
           ))}
         </div>
       </section>
+      {mapDay && mapDay.unmapped.length > 0 ? (
+        <MapDialog
+          dayName={mapDay.day.name}
+          names={mapDay.unmapped}
+          onClose={() => setMapDayId(null)}
+          onSaved={() => refreshCustom((value) => value + 1)}
+        />
+      ) : null}
     </main>
   );
 }
@@ -138,6 +169,8 @@ function LastCard({
   cardio,
   log,
   paint,
+  warning,
+  onWarn,
 }: {
   name: string;
   color: string;
@@ -145,11 +178,18 @@ function LastCard({
   cardio: boolean;
   log: DayLog;
   paint: Paint;
+  warning: string;
+  onWarn: () => void;
 }) {
   const entries = Object.entries(log.book).filter(([, record]) => filledSets(record.sets).length > 0);
   return (
     <article className="last-card" style={{ borderLeftColor: color }}>
       <h3>{name}</h3>
+      {warning ? (
+        <button type="button" className="link-warn" onClick={onWarn}>
+          {warning}
+        </button>
+      ) : null}
       <div className="last-figure">
         <Figure paint={paint} height={150} label={`${name} muscles`} />
       </div>
