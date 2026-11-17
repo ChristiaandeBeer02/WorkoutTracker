@@ -3,6 +3,10 @@ import raw from "./data/exercises.json";
 /**
  * Exercise catalogue from free-exercise-db (https://github.com/yuhonas/free-exercise-db),
  * Unlicense. Images are not bundled; they load from the repository when viewed.
+ *
+ * Array order is part of the day share code: each database exercise is stored by its
+ * index. Never reorder or insert entries. New exercises may only be appended.
+ * If an existing index would change, bump SHARE_VERSION in shareCodec.ts.
  */
 export interface CatalogueExercise {
   id: string;
