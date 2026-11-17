@@ -1,8 +1,10 @@
-import { TRACKER_DAYS, trackerSlots, type DayId } from "./plan";
+import { isPlanDay, loadDays } from "./days";
+import { trackerSlots } from "./plan";
 
-const STATS_KEY = "workout-tracker-stats";
-const DAY_KEY = "workout-tracker-day";
-const LISTS_KEY = "workout-tracker-day-lists";
+const STATS_KEY = "workout-tracker-v2-stats";
+const DAY_KEY = "workout-tracker-v2-day";
+const LISTS_KEY = "workout-tracker-v2-lists";
+const LEGACY_KEYS = ["workout-tracker-stats", "workout-tracker-day", "workout-tracker-day-lists"];
 
 export interface SetStat {
   weight: string;
@@ -14,12 +16,6 @@ export interface ExerciseRecord {
 }
 
 export type StatBook = Record<string, ExerciseRecord>;
-
-interface LegacyStat {
-  weight?: unknown;
-  reps?: unknown;
-  sets?: unknown;
-}
 
 function blankSet(): SetStat {
   return { weight: "", reps: "" };
@@ -34,75 +30,114 @@ function asSet(value: unknown): SetStat {
   };
 }
 
-/** Old single-row stats become set 1. */
-export function recordFromStored(value: unknown): ExerciseRecord | null {
+function recordFromStored(value: unknown): ExerciseRecord | null {
   if (!value || typeof value !== "object") return null;
-  const stat = value as LegacyStat;
-  if (Array.isArray(stat.sets)) {
-    const sets = stat.sets.map(asSet);
-    return sets.length > 0 ? { sets } : null;
-  }
-  if ("weight" in stat || "reps" in stat) {
-    return {
-      sets: [
-        {
-          weight: typeof stat.weight === "string" ? stat.weight : "",
-          reps: typeof stat.reps === "string" ? stat.reps : "",
-        },
-      ],
-    };
-  }
-  return null;
+  const sets = (value as { sets?: unknown }).sets;
+  if (!Array.isArray(sets) || sets.length === 0) return null;
+  return { sets: sets.map(asSet) };
 }
 
-export function parseStats(raw: string | null): { book: StatBook; migrated: boolean } {
-  if (!raw) return { book: {}, migrated: false };
+interface StatsFile {
+  version: 2;
+  days: Record<string, StatBook>;
+}
+
+function dropLegacyKeys(): void {
   try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const book: StatBook = {};
-    let migrated = false;
-    for (const [name, value] of Object.entries(parsed)) {
-      const record = recordFromStored(value);
-      if (!record) continue;
-      book[name] = record;
-      const original = value as LegacyStat;
-      if (!Array.isArray(original?.sets)) migrated = true;
-    }
-    return { book, migrated };
+    for (const key of LEGACY_KEYS) localStorage.removeItem(key);
   } catch {
-    return { book: {}, migrated: false };
+    // Storage can be blocked. The new keys still start empty.
   }
 }
 
-export function loadStats(): StatBook {
+function readStatsFile(): StatsFile {
+  dropLegacyKeys();
   try {
-    const { book, migrated } = parseStats(localStorage.getItem(STATS_KEY));
-    if (migrated) saveStats(book);
-    return book;
+    const raw = localStorage.getItem(STATS_KEY);
+    if (!raw) return { version: 2, days: {} };
+    const parsed = JSON.parse(raw) as { version?: unknown; days?: unknown };
+    if (!parsed || parsed.version !== 2 || !parsed.days || typeof parsed.days !== "object") {
+      return { version: 2, days: {} };
+    }
+    const days: Record<string, StatBook> = {};
+    for (const [dayId, value] of Object.entries(parsed.days as Record<string, unknown>)) {
+      const book: StatBook = {};
+      if (!value || typeof value !== "object") continue;
+      for (const [name, entry] of Object.entries(value as Record<string, unknown>)) {
+        const record = recordFromStored(entry);
+        if (record) book[name] = record;
+      }
+      days[dayId] = book;
+    }
+    return { version: 2, days };
+  } catch {
+    return { version: 2, days: {} };
+  }
+}
+
+function writeStatsFile(file: StatsFile): void {
+  localStorage.setItem(STATS_KEY, JSON.stringify(file));
+}
+
+export function loadStats(dayId: string): StatBook {
+  try {
+    return readStatsFile().days[dayId] ?? {};
   } catch {
     return {};
   }
 }
 
-export function saveStats(book: StatBook): void {
+export function saveStats(dayId: string, book: StatBook): void {
   try {
-    localStorage.setItem(STATS_KEY, JSON.stringify(book));
+    const file = readStatsFile();
+    file.days[dayId] = book;
+    writeStatsFile(file);
   } catch {
     // The session still updates on screen if storage is blocked.
   }
 }
 
-export function loadTrackerDay(): DayId {
+export function purgeDayData(dayId: string): void {
   try {
-    const raw = localStorage.getItem(DAY_KEY);
-    if (TRACKER_DAYS.some((day) => day.id === raw)) return raw as DayId;
+    const file = readStatsFile();
+    delete file.days[dayId];
+    writeStatsFile(file);
+    const raw = localStorage.getItem(LISTS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    delete parsed[dayId];
+    localStorage.setItem(LISTS_KEY, JSON.stringify(parsed));
   } catch {
-    // Fall through to the default day.
+    // The day is already gone from the list on screen.
   }
-  return "legs";
 }
 
-export function saveTrackerDay(day: DayId): void {
+/** Drop every saved list so the default days show the plan again, and drop stats for removed days. */
+export function resetStoredWorkouts(keepDayIds: string[]): void {
+  try {
+    localStorage.removeItem(LISTS_KEY);
+    const file = readStatsFile();
+    const keep = new Set(keepDayIds);
+    for (const id of Object.keys(file.days)) {
+      if (!keep.has(id)) delete file.days[id];
+    }
+    writeStatsFile(file);
+  } catch {
+    // The reset still applies to the day list.
+  }
+}
+
+export function loadTrackerDay(): string {
+  const days = loadDays();
+  try {
+    const raw = localStorage.getItem(DAY_KEY);
+    if (raw && days.some((day) => day.id === raw)) return raw;
+  } catch {
+    // Fall through to the first day.
+  }
+  return days[0]?.id ?? "legs";
+}
+
+export function saveTrackerDay(day: string): void {
   try {
     localStorage.setItem(DAY_KEY, day);
   } catch {
@@ -177,11 +212,11 @@ function isWorkoutCard(value: unknown): value is WorkoutCard {
   );
 }
 
-export function loadDayWorkouts(day: DayId): WorkoutCard[] | null {
+export function loadDayWorkouts(day: string): WorkoutCard[] | null {
   try {
     const raw = localStorage.getItem(LISTS_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<Record<DayId, unknown>>;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
     const list = parsed[day];
     if (!Array.isArray(list)) return null;
     const cards = list.filter(isWorkoutCard);
@@ -191,31 +226,14 @@ export function loadDayWorkouts(day: DayId): WorkoutCard[] | null {
   }
 }
 
-/** Names from logged stats and saved day lists, for name suggestions. */
-export function historyExerciseNames(book: StatBook): string[] {
-  const names: string[] = [];
-  for (const name of Object.keys(book)) names.push(name);
-  try {
-    const raw = localStorage.getItem(LISTS_KEY);
-    if (!raw) return names;
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    for (const list of Object.values(parsed)) {
-      if (!Array.isArray(list)) continue;
-      for (const card of list) {
-        if (isWorkoutCard(card)) names.push(card.name);
-      }
-    }
-  } catch {
-    // Stats names are still usable.
-  }
-  return names;
-}
-
 /** Saved list, or the plan for that day when nothing has been saved yet. */
-export function cardsForDay(day: DayId): WorkoutCard[] {
+export function cardsForDay(day: string): WorkoutCard[] {
   const saved = loadDayWorkouts(day);
   if (saved) return saved;
-  const book = loadStats();
+  if (!isPlanDay(day)) {
+    return [{ id: `blank-${day}`, name: "", options: [], sets: 3 }];
+  }
+  const book = loadStats(day);
   return trackerSlots(day).map((slot) => ({
     id: slot.id,
     name: slot.options[0],
@@ -225,7 +243,7 @@ export function cardsForDay(day: DayId): WorkoutCard[] {
 }
 
 /** Append one exercise card and persist the day, including the plan if it was still unsaved. */
-export function appendExerciseToDay(day: DayId, name: string): void {
+export function appendExerciseToDay(day: string, name: string): void {
   const cards = [
     ...cardsForDay(day),
     {
@@ -238,10 +256,10 @@ export function appendExerciseToDay(day: DayId, name: string): void {
   saveDayWorkouts(day, cards);
 }
 
-export function saveDayWorkouts(day: DayId, cards: WorkoutCard[]): void {
+export function saveDayWorkouts(day: string, cards: WorkoutCard[]): void {
   try {
     const raw = localStorage.getItem(LISTS_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Partial<Record<DayId, WorkoutCard[]>>) : {};
+    const parsed = raw ? (JSON.parse(raw) as Record<string, WorkoutCard[]>) : {};
     parsed[day] = cards;
     localStorage.setItem(LISTS_KEY, JSON.stringify(parsed));
   } catch {

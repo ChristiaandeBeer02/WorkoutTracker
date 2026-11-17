@@ -2,7 +2,7 @@
  * Every colour and fill strength the app uses.
  *
  * Day colours are the same in light and dark, the way the original data-viz
- * series were: Push blue, Pull yellow, Legs cyan, Cardio + Core red.
+ * series were: Push blue, Pull yellow, Legs cyan, Cardio + Abs red.
  * Chrome colours follow the viewer's prefers-color-scheme.
  * Change a value here and the overview, legend, day figures and pop-ups follow.
  */
@@ -32,7 +32,7 @@ export const DAY_LABELS: Record<DayKey, string> = {
   push: "Push",
   pull: "Pull",
   legs: "Legs",
-  cardioCore: "Cardio + Core",
+  cardioCore: "Cardio + Abs",
 };
 
 export const DAY_KEYS: DayKey[] = ["push", "pull", "legs", "cardioCore"];

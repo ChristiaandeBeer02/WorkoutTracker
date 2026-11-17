@@ -346,7 +346,7 @@ export const PULL_TABLE: DataTable = {
 export const TRACKER_DAYS: Array<{ id: DayId; label: string }> = [
   { id: "legs", label: "Legs" },
   { id: "push", label: "Push" },
-  { id: "cardio", label: "Cardio + Core" },
+  { id: "cardio", label: "Cardio + Abs" },
   { id: "pull", label: "Pull" },
 ];
 

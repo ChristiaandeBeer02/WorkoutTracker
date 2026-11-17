@@ -16,6 +16,7 @@ import {
   type DayKey,
   type Scheme,
 } from "./colors";
+import { syncDayFromPanel, syncDaysToPalette } from "./days";
 
 interface ThemeValue {
   scheme: Scheme;
@@ -65,12 +66,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setColors((current) => {
           const updated = { ...current, [key]: next };
           saveDayColors(updated);
+          syncDayFromPanel(key, next);
           return updated;
         });
       },
       resetColors: () => {
         clearDayColors();
         setColors({ ...DEFAULT_DAY_COLORS });
+        syncDaysToPalette();
       },
     }),
     [scheme, colors],

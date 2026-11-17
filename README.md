@@ -8,7 +8,7 @@ The exercise catalogue is [free-exercise-db](https://github.com/yuhonas/free-exe
 
 There are no kilogram loads. The tables use rep ranges only. Day colours can be changed from the Colours panel and are saved in this browser.
 
-Home, Tracker, and Exercise share a bottom menu. Tracker logs weight and reps for the same exercises as each day. Only the last session is kept on this phone. Submit writes the filled rows and leaves empty ones as they were.
+Home, Tracker, and Exercise share a bottom menu. Tracker logs weight and reps for each day on its own. Manage days renames, recolours, reorders, and adds or removes days. Submit moves to the next day in that list. Only the last session for each day is kept on this phone.
 
 Exercise searches the catalogue. Filter by muscle, equipment, or a day from the current split. A day filter lists what is on that day. Open an exercise for the write-up and photo. Add puts a card on a day’s Tracker list.
 
