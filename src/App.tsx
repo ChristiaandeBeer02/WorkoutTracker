@@ -5,10 +5,8 @@ import { Figure } from "./components/Figure";
 import { RestBar } from "./components/RestBar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Tracker } from "./components/Tracker";
-import { OPACITY } from "./colors";
 import { loadDays } from "./days";
-import { dayHasCardio, muscleLine, musclesForDay } from "./muscles";
-import { paintAll, type Paint } from "./paint";
+import { dayHasCardio, paintDays, plainMuscleLine, musclesForDay } from "./muscles";
 import { loadDayLog, type DayLog } from "./trackerStore";
 import { useTheme } from "./theme";
 
@@ -43,12 +41,10 @@ function Page() {
     day,
     log: loadDayLog(day.id),
     muscles: musclesForDay(day),
+    cardio: dayHasCardio(day),
   }));
   const anyLogged = cards.some((card) => Object.keys(card.log.book).length > 0);
-  const paint: Paint = {};
-  for (const card of [...cards].reverse()) {
-    Object.assign(paint, paintAll(card.muscles, card.day.color, OPACITY.primary));
-  }
+  const paint = paintDays(days);
 
   return (
     <main className="page">
@@ -89,8 +85,8 @@ function Page() {
                 key={card.day.id}
                 name={card.day.name}
                 color={card.day.color}
-                muscles={muscleLine(card.muscles)}
-                cardio={dayHasCardio(card.day)}
+                muscles={plainMuscleLine(card.muscles.names)}
+                cardio={card.cardio}
                 log={card.log}
               />
             ))}

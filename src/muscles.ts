@@ -1,18 +1,18 @@
 import type { MuscleGroup } from "./anatomy";
 import type { TrackerDay } from "./days";
-import { isPlanDay } from "./days";
-import { catalogueByName, exerciseIsCardio } from "./exercises";
-import { CARDIO_LEGS, CORE_SET, EXERCISES, LEGS, PULL, PUSH } from "./plan";
+import { catalogueByName, exerciseIsCardio, labelize, type CatalogueExercise } from "./exercises";
+import { OPACITY } from "./colors";
+import { paintAll, type Paint } from "./paint";
 import { cardsForDay } from "./trackerStore";
 
 /**
- * Catalogue muscle names that already have a region on the figure.
- * Neck has no region. Shoulders are not split in the catalogue, so they
- * use the front and side regions. Rear shoulders, obliques, and the heart
- * stay on the hard-coded day groups when a catalogue name does not match.
+ * Every free-exercise-db muscle name, mapped onto the figure.
+ * Abdominals also cover the oblique region, because the catalogue has no separate oblique name.
+ * Shoulders cover the front, side, and rear regions.
+ * Neck is drawn on both figures; the catalogue has no traced neck in MuscleMap itself.
  */
-const FROM_CATALOGUE: Record<string, MuscleGroup[]> = {
-  abdominals: ["CORE"],
+export const DB_MUSCLE_REGIONS: Record<string, MuscleGroup[]> = {
+  abdominals: ["CORE", "OBLIQUES"],
   abductors: ["ABDUCTORS"],
   adductors: ["ADDUCTORS"],
   biceps: ["BICEPS"],
@@ -24,63 +24,82 @@ const FROM_CATALOGUE: Record<string, MuscleGroup[]> = {
   lats: ["LATS"],
   "lower back": ["BACK_LOWER"],
   "middle back": ["RHOMBOIDS"],
+  neck: ["NECK"],
   quadriceps: ["QUADS"],
-  shoulders: ["SHOULDERS_FRONT", "SHOULDERS_SIDE"],
+  shoulders: ["SHOULDERS_FRONT", "SHOULDERS_SIDE", "SHOULDERS_REAR"],
   traps: ["TRAPEZIUS"],
   triceps: ["TRICEPS"],
 };
 
-const PLAN_GROUPS: Record<string, readonly MuscleGroup[]> = {
-  legs: LEGS,
-  push: PUSH,
-  cardio: [...CORE_SET, ...CARDIO_LEGS],
-  pull: [...PULL, "CORE"],
-};
-
-export const GROUP_LABEL: Record<MuscleGroup, string> = {
-  CHEST: "Chest",
-  SHOULDERS_FRONT: "Front shoulders",
-  SHOULDERS_SIDE: "Side shoulders",
-  SHOULDERS_REAR: "Rear shoulders",
-  TRICEPS: "Triceps",
-  BICEPS: "Biceps",
-  FOREARMS: "Forearms",
-  LATS: "Lats",
-  TRAPEZIUS: "Traps",
-  RHOMBOIDS: "Mid-back",
-  BACK_LOWER: "Lower back",
-  CORE: "Abs",
-  OBLIQUES: "Obliques",
-  QUADS: "Quads",
-  HAMSTRINGS: "Hamstrings",
-  GLUTES: "Glutes",
-  ADDUCTORS: "Adductors",
-  ABDUCTORS: "Abductors",
-  CALVES: "Calves",
-};
-
-export function musclesForDay(day: TrackerDay): MuscleGroup[] {
-  const found = new Set<MuscleGroup>();
-  for (const card of cardsForDay(day.id)) {
-    const exercise = catalogueByName(card.name);
-    if (exercise) {
-      for (const muscle of exercise.primaryMuscles) {
-        for (const group of FROM_CATALOGUE[muscle] ?? []) found.add(group);
-      }
-      continue;
-    }
-    const known = EXERCISES[card.name.trim()];
-    if (known) {
-      for (const group of known.primary) found.add(group);
-    }
-  }
-  if (found.size > 0) return [...found];
-  if (isPlanDay(day.id)) return [...PLAN_GROUPS[day.id]];
-  return [];
+export interface DayMuscles {
+  primary: MuscleGroup[];
+  secondary: MuscleGroup[];
+  names: string[];
 }
 
-export function muscleLine(groups: readonly MuscleGroup[]): string {
-  return groups.map((group) => GROUP_LABEL[group]).join(", ");
+function regionsFor(names: readonly string[]): MuscleGroup[] {
+  const groups: MuscleGroup[] = [];
+  for (const name of names) {
+    for (const group of DB_MUSCLE_REGIONS[name] ?? []) {
+      if (!groups.includes(group)) groups.push(group);
+    }
+  }
+  return groups;
+}
+
+export function musclesForExercise(exercise: CatalogueExercise | null | undefined): DayMuscles {
+  if (!exercise) return { primary: [], secondary: [], names: [] };
+  const primary = regionsFor(exercise.primaryMuscles);
+  const secondary = regionsFor(exercise.secondaryMuscles).filter((group) => !primary.includes(group));
+  return { primary, secondary, names: exercise.primaryMuscles };
+}
+
+/** Union of the catalogue muscles for the exercises currently on this day. Unknown names add nothing. */
+export function musclesForDay(day: TrackerDay): DayMuscles {
+  const primary = new Set<MuscleGroup>();
+  const secondary = new Set<MuscleGroup>();
+  const names: string[] = [];
+  const seen = new Set<string>();
+  for (const card of cardsForDay(day.id)) {
+    const exercise = catalogueByName(card.name);
+    if (!exercise) continue;
+    for (const name of exercise.primaryMuscles) {
+      const key = name.trim().toLowerCase();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        names.push(name);
+      }
+      for (const group of DB_MUSCLE_REGIONS[name] ?? []) primary.add(group);
+    }
+    for (const name of exercise.secondaryMuscles) {
+      for (const group of DB_MUSCLE_REGIONS[name] ?? []) secondary.add(group);
+    }
+  }
+  for (const group of primary) secondary.delete(group);
+  return { primary: [...primary], secondary: [...secondary], names };
+}
+
+export function plainMuscleLine(names: readonly string[]): string {
+  return names.map((name) => labelize(name)).join(", ");
+}
+
+/** Highest day in the list wins. Primary paint covers a lighter secondary from the same day. */
+export function paintDays(days: TrackerDay[]): Paint {
+  const paint: Paint = {};
+  for (const day of [...days].reverse()) {
+    const muscles = musclesForDay(day);
+    Object.assign(paint, paintAll(muscles.secondary, day.color, OPACITY.secondary));
+    Object.assign(paint, paintAll(muscles.primary, day.color, OPACITY.primary));
+  }
+  return paint;
+}
+
+export function paintExercise(exercise: CatalogueExercise | null | undefined): Paint {
+  const muscles = musclesForExercise(exercise);
+  return {
+    ...paintAll(muscles.secondary, "var(--accent)", OPACITY.secondary),
+    ...paintAll(muscles.primary, "var(--accent)", OPACITY.primary),
+  };
 }
 
 export function dayHasCardio(day: TrackerDay): boolean {
