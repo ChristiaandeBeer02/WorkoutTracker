@@ -47,6 +47,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        importScripts: ["rest-sw.js"],
         globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest}"],
         navigateFallback: "index.html",
       },

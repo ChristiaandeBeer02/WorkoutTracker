@@ -19,6 +19,7 @@ import {
   type DayId,
 } from "./plan";
 import { paintAll, type Paint } from "./paint";
+import { RestBar } from "./components/RestBar";
 import { useTheme } from "./theme";
 
 const SPLIT: Array<{ id: string; day: DayKey; label: string; detail: string }> = [
@@ -35,7 +36,10 @@ function dayColor(colors: Record<DayKey, string>, day: DayId): string {
 
 export function App() {
   return (
-    <Page />
+    <>
+      <RestBar />
+      <Page />
+    </>
   );
 }
 
