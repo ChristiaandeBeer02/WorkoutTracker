@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { BottomNav, loadAppView, saveAppView, type AppView } from "./components/BottomNav";
 import { ExercisePage } from "./components/ExercisePage";
 import { Figure } from "./components/Figure";
@@ -6,7 +6,7 @@ import { RestBar } from "./components/RestBar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Tracker } from "./components/Tracker";
 import { loadDays } from "./days";
-import { dayHasCardio, paintDays, plainMuscleLine, musclesForDay } from "./muscles";
+import { coveredAcrossDays, dayHasCardio, labelize, missingAcrossDays, musclesForDay, paintDays } from "./muscles";
 import { loadDayLog, type DayLog } from "./trackerStore";
 import { useTheme } from "./theme";
 
@@ -45,6 +45,8 @@ function Page() {
   }));
   const anyLogged = cards.some((card) => Object.keys(card.log.book).length > 0);
   const paint = paintDays(days);
+  const covered = coveredAcrossDays(days);
+  const missing = missingAcrossDays(days);
 
   return (
     <main className="page">
@@ -74,6 +76,29 @@ function Page() {
         <div className="figure">
           <Figure paint={paint} label="Muscles the days cover, front and back" />
         </div>
+        <div className="coverage">
+          <MuscleBox title="Muscles covered">
+            {covered.length === 0 ? (
+              <p className="muscle-empty">None</p>
+            ) : (
+              <ul className="muscle-dots">
+                {covered.map((muscle) => (
+                  <li key={muscle.name}>
+                    <span className="swatch" style={{ background: muscle.color }} />
+                    {labelize(muscle.name)}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </MuscleBox>
+          <MuscleBox title="Muscles missing">
+            {missing.length === 0 ? (
+              <p className="muscle-empty">None - full coverage</p>
+            ) : (
+              <p className="muscle-missing">{missing.map((name) => labelize(name)).join(", ")}</p>
+            )}
+          </MuscleBox>
+        </div>
       </section>
 
       <section className="section" aria-labelledby="last-heading">
@@ -85,7 +110,7 @@ function Page() {
                 key={card.day.id}
                 name={card.day.name}
                 color={card.day.color}
-                muscles={plainMuscleLine(card.muscles.names)}
+                muscles={card.muscles.names}
                 cardio={card.cardio}
                 log={card.log}
               />
@@ -108,7 +133,7 @@ function LastCard({
 }: {
   name: string;
   color: string;
-  muscles: string;
+  muscles: string[];
   cardio: boolean;
   log: DayLog;
 }) {
@@ -116,8 +141,21 @@ function LastCard({
   return (
     <article className="last-card" style={{ borderLeftColor: color }}>
       <h3>{name}</h3>
-      {muscles ? <p className="last-muscles">{muscles}</p> : null}
-      {cardio ? <p className="last-muscles">Heart & lungs</p> : null}
+      <MuscleBox title="Muscles covered">
+        {muscles.length === 0 ? (
+          <p className="muscle-empty">None</p>
+        ) : (
+          <ul className="muscle-dots">
+            {muscles.map((muscle) => (
+              <li key={muscle}>
+                <span className="swatch" style={{ background: color }} />
+                {labelize(muscle)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </MuscleBox>
+      {cardio ? <p className="heart-line">Heart & lungs</p> : null}
       {entries.length === 0 ? (
         <p className="last-empty">No exercise recorded</p>
       ) : (
@@ -138,6 +176,15 @@ function LastCard({
         </>
       )}
     </article>
+  );
+}
+
+function MuscleBox({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="muscle-box">
+      <p className="muscle-box-title">{title}</p>
+      {children}
+    </div>
   );
 }
 
