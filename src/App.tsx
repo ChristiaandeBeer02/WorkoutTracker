@@ -7,7 +7,8 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { Tracker } from "./components/Tracker";
 import { loadDays } from "./days";
 import { coveredAcrossDays, dayHasCardio, labelize, missingAcrossDays, musclesForDay, paintDays } from "./muscles";
-import { loadDayLog, type DayLog } from "./trackerStore";
+import { loadDayLog, type DayLog, type SetStat } from "./trackerStore";
+import type { Paint } from "./paint";
 import { useTheme } from "./theme";
 
 export function App() {
@@ -43,7 +44,6 @@ function Page() {
     muscles: musclesForDay(day),
     cardio: dayHasCardio(day),
   }));
-  const anyLogged = cards.some((card) => Object.keys(card.log.book).length > 0);
   const paint = paintDays(days);
   const covered = coveredAcrossDays(days);
   const missing = missingAcrossDays(days);
@@ -103,25 +103,32 @@ function Page() {
 
       <section className="section" aria-labelledby="last-heading">
         <h2 id="last-heading">Last workout</h2>
-        {anyLogged ? (
-          <div className="last-list">
-            {cards.map((card) => (
-              <LastCard
-                key={card.day.id}
-                name={card.day.name}
-                color={card.day.color}
-                muscles={card.muscles.names}
-                cardio={card.cardio}
-                log={card.log}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="last-empty">No exercise recorded</p>
-        )}
+        <div className="last-list">
+          {cards.map((card) => (
+            <LastCard
+              key={card.day.id}
+              name={card.day.name}
+              color={card.day.color}
+              muscles={card.muscles.names}
+              cardio={card.cardio}
+              log={card.log}
+              paint={paintDays([card.day])}
+            />
+          ))}
+        </div>
       </section>
     </main>
   );
+}
+
+function filledSets(sets: SetStat[]): SetStat[] {
+  return sets.filter((set) => set.weight.trim() !== "" || set.reps.trim() !== "");
+}
+
+function setLine(sets: SetStat[]): string {
+  return filledSets(sets)
+    .map((set) => `${set.weight}×${set.reps}`)
+    .join(", ");
 }
 
 function LastCard({
@@ -130,17 +137,22 @@ function LastCard({
   muscles,
   cardio,
   log,
+  paint,
 }: {
   name: string;
   color: string;
   muscles: string[];
   cardio: boolean;
   log: DayLog;
+  paint: Paint;
 }) {
-  const entries = Object.entries(log.book);
+  const entries = Object.entries(log.book).filter(([, record]) => filledSets(record.sets).length > 0);
   return (
     <article className="last-card" style={{ borderLeftColor: color }}>
       <h3>{name}</h3>
+      <div className="last-figure">
+        <Figure paint={paint} height={150} label={`${name} muscles`} />
+      </div>
       <MuscleBox title="Muscles covered">
         {muscles.length === 0 ? (
           <p className="muscle-empty">None</p>
@@ -161,18 +173,14 @@ function LastCard({
       ) : (
         <>
           {log.loggedAt ? <p className="last-date">{formatWhen(log.loggedAt)}</p> : null}
-          {entries.map(([exercise, record]) => (
-            <div key={exercise} className="last-exercise">
-              <p className="last-name">{exercise}</p>
-              {record.sets
-                .filter((set) => set.weight.trim() !== "" || set.reps.trim() !== "")
-                .map((set, index) => (
-                  <p key={index} className="last-set">
-                    {set.weight} × {set.reps}
-                  </p>
-                ))}
-            </div>
-          ))}
+          <ul className="last-session">
+            {entries.map(([exercise, record]) => (
+              <li key={exercise}>
+                <span className="last-name">{exercise}</span>
+                <span className="last-sets">{setLine(record.sets)}</span>
+              </li>
+            ))}
+          </ul>
         </>
       )}
     </article>
