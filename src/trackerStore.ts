@@ -1,5 +1,6 @@
 import { isPlanDay, loadDays } from "./days";
 import { trackerSlots } from "./plan";
+import { forgetAllDrafts, forgetDraftDay } from "./trackerDrafts";
 
 const STATS_KEY = "workout-tracker-v2-stats";
 const DAY_KEY = "workout-tracker-v2-day";
@@ -134,6 +135,7 @@ export function purgeDayData(dayId: string): void {
     const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
     delete parsed[dayId];
     localStorage.setItem(LISTS_KEY, JSON.stringify(parsed));
+    forgetDraftDay(dayId);
   } catch {
     // The day is already gone from the list on screen.
   }
@@ -149,6 +151,7 @@ export function resetStoredWorkouts(keepDayIds: string[]): void {
       if (!keep.has(id)) delete file.days[id];
     }
     writeStatsFile(file);
+    forgetAllDrafts();
   } catch {
     // The reset still applies to the day list.
   }
