@@ -1,11 +1,13 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { BottomNav, loadAppView, saveAppView, type AppView } from "./components/BottomNav";
+import { ImportDays } from "./components/ImportDays";
 import { ExercisePage } from "./components/ExercisePage";
 import { Figure } from "./components/Figure";
 import { RestBar } from "./components/RestBar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Tracker } from "./components/Tracker";
 import { linkWarning, unmappedOnDay } from "./customExercises";
+import { notifyDaysChanged } from "./dayShare";
 import { loadDays } from "./days";
 import { MapDialog } from "./components/MuscleEditor";
 import { coveredAcrossDays, dayHasCardio, labelize, missingAcrossDays, musclesForDay, paintDays } from "./muscles";
@@ -15,19 +17,50 @@ import { useTheme } from "./theme";
 
 export function App() {
   const [view, setView] = useState<AppView>(loadAppView);
+  const [importCode, setImportCode] = useState<string | null>(null);
+  const [dataRev, setDataRev] = useState(0);
+
+  useEffect(() => {
+    function takeImport() {
+      const hash = window.location.hash;
+      if (!hash.startsWith("#import=")) return;
+      const code = decodeURIComponentSafe(hash.slice("#import=".length));
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      if (code) setImportCode(code);
+    }
+    takeImport();
+    window.addEventListener("hashchange", takeImport);
+    return () => window.removeEventListener("hashchange", takeImport);
+  }, []);
 
   function changeView(next: AppView) {
     setView(next);
     saveAppView(next);
   }
 
+  function appliedImport() {
+    notifyDaysChanged();
+    setDataRev((value) => value + 1);
+  }
+
   return (
     <>
       <RestBar />
-      {view === "home" ? <Page /> : view === "tracker" ? <Tracker /> : <ExercisePage />}
+      {view === "home" ? <Page refresh={dataRev} /> : view === "tracker" ? <Tracker /> : <ExercisePage key={dataRev} />}
       <BottomNav view={view} onChange={changeView} />
+      {importCode != null ? (
+        <ImportDays initialCode={importCode} onClose={() => setImportCode(null)} onApplied={appliedImport} />
+      ) : null}
     </>
   );
+}
+
+function decodeURIComponentSafe(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 function formatWhen(iso: string): string {
@@ -36,7 +69,8 @@ function formatWhen(iso: string): string {
   return date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
-function Page() {
+function Page({ refresh }: { refresh: number }) {
+  void refresh;
   const { colors, setColor, resetColors } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mapDayId, setMapDayId] = useState<string | null>(null);

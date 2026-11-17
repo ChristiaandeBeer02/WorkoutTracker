@@ -7,8 +7,11 @@ import {
   saveDays,
   type TrackerDay,
 } from "../days";
+import { notifyDaysChanged } from "../dayShare";
 import { useTheme } from "../theme";
 import { purgeDayData, resetStoredWorkouts, saveDayWorkouts } from "../trackerStore";
+import { ExportDays } from "./ExportDays";
+import { ImportDays } from "./ImportDays";
 
 function blankCard() {
   return {
@@ -34,6 +37,8 @@ export function ManageDays({ onChange, onClose }: { onChange: () => void; onClos
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [blocked, setBlocked] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [exportIds, setExportIds] = useState<string[] | null>(null);
   const drag = useRef<{ from: number; last: number; startY: number; height: number } | null>(null);
 
   function commit(next: TrackerDay[]) {
@@ -168,6 +173,9 @@ export function ManageDays({ onChange, onClose }: { onChange: () => void; onClos
                   value={day.color}
                   onChange={(event) => recolor(day, event.target.value)}
                 />
+                <button type="button" className="row-share" onClick={() => setExportIds([day.id])}>
+                  Share
+                </button>
                 <input
                   type="checkbox"
                   aria-label={`Select ${day.name}`}
@@ -184,21 +192,53 @@ export function ManageDays({ onChange, onClose }: { onChange: () => void; onClos
           })}
         </ul>
         {blocked ? <p className="manage-note">{blocked}</p> : null}
-        <div className="manage-actions">
-          <button type="button" onClick={addDay} aria-label="Add day">
-            +
-          </button>
-          <button type="button" onClick={deleteSelected} disabled={selected.length === 0}>
-            {confirmDelete ? "Delete?" : "Delete"}
-          </button>
-          <button type="button" onClick={reset}>
-            {confirmReset ? "Reset?" : "Reset"}
-          </button>
-          <button type="button" className="manage-save" onClick={close}>
-            Save
-          </button>
+        <div className="manage-actions-stack">
+          <div className="manage-actions">
+            <button type="button" onClick={() => setImporting(true)}>
+              Import
+            </button>
+            <button
+              type="button"
+              disabled={selected.length === 0}
+              onClick={() => setExportIds(days.filter((day) => selected.includes(day.id)).map((day) => day.id))}
+            >
+              Export
+            </button>
+          </div>
+          <div className="manage-actions">
+            <button type="button" onClick={() => setExportIds(days.map((day) => day.id))}>
+              Export all days
+            </button>
+          </div>
+          <div className="manage-actions">
+            <button type="button" onClick={addDay} aria-label="Add day">
+              +
+            </button>
+            <button type="button" onClick={deleteSelected} disabled={selected.length === 0}>
+              {confirmDelete ? "Delete?" : "Delete"}
+            </button>
+            <button type="button" onClick={reset}>
+              {confirmReset ? "Reset?" : "Reset"}
+            </button>
+            <button type="button" className="manage-save" onClick={close}>
+              Save
+            </button>
+          </div>
         </div>
       </div>
+      {exportIds ? <ExportDays ids={exportIds} onClose={() => setExportIds(null)} /> : null}
+      {importing ? (
+        <ImportDays
+          onClose={() => setImporting(false)}
+          onApplied={() => {
+            setDays(loadDays());
+            setDrafts({});
+            setSelected([]);
+            onChange();
+            notifyDaysChanged();
+          }}
+        />
+      ) : null}
     </>
   );
 }

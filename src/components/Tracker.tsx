@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { DAYS_CHANGED_EVENT } from "../dayShare";
 import { dayById, isPlanDay, loadDays, nextDay, type TrackerDay } from "../days";
 import { loadCustomExercises } from "../customExercises";
 import { catalogueNameMatches } from "../exercises";
@@ -73,6 +74,12 @@ export function Tracker() {
     setNotice("");
     setConfirmRemove(null);
   }
+
+  useEffect(() => {
+    const onChange = () => refreshDays();
+    window.addEventListener(DAYS_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(DAYS_CHANGED_EVENT, onChange);
+  }, [day]);
 
   function refreshDays() {
     const next = loadDays();

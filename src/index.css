@@ -1423,6 +1423,105 @@ th.end {
   margin-top: auto;
 }
 
+.manage-actions-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.manage-actions-stack .manage-actions {
+  margin-top: 0;
+}
+
+.row-share {
+  appearance: none;
+  flex: none;
+  height: 36px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.share-layer.backdrop {
+  z-index: 60;
+}
+
+.manage-pop.share-layer {
+  z-index: 61;
+}
+
+.share-field {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.share-code {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  resize: none;
+  overflow-wrap: anywhere;
+}
+
+.share-note,
+.import-clash {
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.share-qr {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+  padding: 8px;
+  background: #ffffff;
+  border-radius: 12px;
+}
+
+.share-qr svg {
+  width: min(220px, 100%);
+  height: auto;
+}
+
+.import-preview {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.import-preview li {
+  margin: 0 0 12px;
+}
+
+.import-line {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 20px;
+}
+
 .manage-actions.editor-actions {
   margin-top: 12px;
 }
