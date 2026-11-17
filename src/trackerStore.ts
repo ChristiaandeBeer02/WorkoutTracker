@@ -2,6 +2,7 @@ import { TRACKER_DAYS, type DayId } from "./plan";
 
 const STATS_KEY = "workout-tracker-stats";
 const DAY_KEY = "workout-tracker-day";
+const LISTS_KEY = "workout-tracker-day-lists";
 
 export interface SetStat {
   weight: string;
@@ -153,4 +154,50 @@ export function displayStat(value: string | undefined): string {
 export function rememberedSetCount(record: ExerciseRecord | undefined, planSets: number): number {
   if (record && record.sets.length > 0) return record.sets.length;
   return planSets >= 1 ? planSets : 3;
+}
+
+export interface WorkoutCard {
+  id: string;
+  name: string;
+  options: string[];
+  sets: number;
+}
+
+function isWorkoutCard(value: unknown): value is WorkoutCard {
+  if (!value || typeof value !== "object") return false;
+  const card = value as Partial<WorkoutCard>;
+  return (
+    typeof card.id === "string" &&
+    card.id.length > 0 &&
+    typeof card.name === "string" &&
+    typeof card.sets === "number" &&
+    card.sets >= 1 &&
+    Array.isArray(card.options) &&
+    card.options.every((option) => typeof option === "string")
+  );
+}
+
+export function loadDayWorkouts(day: DayId): WorkoutCard[] | null {
+  try {
+    const raw = localStorage.getItem(LISTS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<Record<DayId, unknown>>;
+    const list = parsed[day];
+    if (!Array.isArray(list)) return null;
+    const cards = list.filter(isWorkoutCard);
+    return cards;
+  } catch {
+    return null;
+  }
+}
+
+export function saveDayWorkouts(day: DayId, cards: WorkoutCard[]): void {
+  try {
+    const raw = localStorage.getItem(LISTS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Partial<Record<DayId, WorkoutCard[]>>) : {};
+    parsed[day] = cards;
+    localStorage.setItem(LISTS_KEY, JSON.stringify(parsed));
+  } catch {
+    // The list still applies for this visit.
+  }
 }

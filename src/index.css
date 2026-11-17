@@ -234,14 +234,62 @@ a {
   margin-bottom: 8px;
 }
 
-.set-card-head .ex-pick {
+.set-card-head .ex-name {
+  position: relative;
   flex: 1;
   min-width: 0;
 }
 
-.set-card-head .ex-pick-label {
-  font-size: 15px;
+.ex-name input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 36px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
   font-weight: 650;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ex-name.has-picks input {
+  padding-right: 22px;
+}
+
+.ex-name.has-picks::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  margin-top: -2px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-secondary);
+  pointer-events: none;
+}
+
+.remove-workout {
+  appearance: none;
+  display: block;
+  margin: 0 0 8px auto;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.remove-workout.confirm {
+  color: var(--cardio);
 }
 
 .set-actions {
