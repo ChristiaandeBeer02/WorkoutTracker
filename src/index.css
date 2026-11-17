@@ -541,18 +541,31 @@ p {
   line-height: 18px;
 }
 
-.last-exercise + .last-exercise {
-  margin-top: 8px;
+.last-figure {
+  max-width: 220px;
+  margin: 0 0 8px;
+}
+
+.last-session {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.last-session li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: 0 0 6px;
 }
 
 .last-name {
-  margin: 0;
   font-size: 15px;
   font-weight: 650;
 }
 
-.last-set {
-  margin: 0;
+.last-sets {
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 20px;
