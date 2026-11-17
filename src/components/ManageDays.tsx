@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { CloseOnBack, useDismissOnBack } from "../closeOnBack";
 import {
   createDay,
   isPlanDay,
@@ -40,6 +41,8 @@ export function ManageDays({ onChange, onClose }: { onChange: () => void; onClos
   const [importing, setImporting] = useState(false);
   const [exportIds, setExportIds] = useState<string[] | null>(null);
   const drag = useRef<{ from: number; last: number; startY: number; height: number } | null>(null);
+  useDismissOnBack(confirmDelete, () => setConfirmDelete(false));
+  useDismissOnBack(confirmReset, () => setConfirmReset(false));
 
   function commit(next: TrackerDay[]) {
     saveDays(next);
@@ -122,6 +125,7 @@ export function ManageDays({ onChange, onClose }: { onChange: () => void; onClos
 
   return (
     <>
+      <CloseOnBack onClose={onClose} />
       <button type="button" className="backdrop" aria-label="Close manage days" onClick={close} />
       <div className="manage-pop" role="dialog" aria-modal="true" aria-labelledby="manage-days-title">
         <h2 id="manage-days-title">Manage days</h2>

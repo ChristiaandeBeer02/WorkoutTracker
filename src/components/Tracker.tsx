@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useDismissOnBack } from "../closeOnBack";
 import { DAYS_CHANGED_EVENT } from "../dayShare";
 import { dayById, isPlanDay, loadDays, nextDay, type TrackerDay } from "../days";
 import { loadCustomExercises } from "../customExercises";
@@ -55,6 +56,7 @@ export function Tracker() {
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [naming, setNaming] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
+  useDismissOnBack(confirmRemove != null, () => setConfirmRemove(null));
 
   function cardsFor(target: string, book: StatBook = stats): WorkoutCard[] {
     return lists[target] ?? loadDayWorkouts(target) ?? planCards(target, book);

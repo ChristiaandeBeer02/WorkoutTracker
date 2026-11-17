@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import qrcode from "qrcode-generator";
+import { CloseOnBack } from "../closeOnBack";
 import { sharedDaysFromIds } from "../dayShare";
 import { encodeShareCode, QR_LINK_LIMIT, ShareError, shareUrl } from "../shareCodec";
 
@@ -52,6 +53,7 @@ export function ExportDays({ ids, onClose }: { ids: string[]; onClose: () => voi
 
   return (
     <>
+      <CloseOnBack onClose={onClose} />
       <button type="button" className="backdrop share-layer" aria-label="Close share" onClick={onClose} />
       <div className="manage-pop share-layer" role="dialog" aria-modal="true" aria-labelledby="share-title">
         <h2 id="share-title">Share {title}</h2>
