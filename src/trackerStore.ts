@@ -3,26 +3,80 @@ import { TRACKER_DAYS, type DayId } from "./plan";
 const STATS_KEY = "workout-tracker-stats";
 const DAY_KEY = "workout-tracker-day";
 
-export interface ExerciseStat {
+export interface SetStat {
   weight: string;
   reps: string;
 }
 
-export type StatBook = Record<string, ExerciseStat>;
+export interface ExerciseRecord {
+  sets: SetStat[];
+}
+
+export type StatBook = Record<string, ExerciseRecord>;
+
+interface LegacyStat {
+  weight?: unknown;
+  reps?: unknown;
+  sets?: unknown;
+}
+
+function blankSet(): SetStat {
+  return { weight: "", reps: "" };
+}
+
+function asSet(value: unknown): SetStat {
+  if (!value || typeof value !== "object") return blankSet();
+  const row = value as Partial<SetStat>;
+  return {
+    weight: typeof row.weight === "string" ? row.weight : "",
+    reps: typeof row.reps === "string" ? row.reps : "",
+  };
+}
+
+/** Old single-row stats become set 1. */
+export function recordFromStored(value: unknown): ExerciseRecord | null {
+  if (!value || typeof value !== "object") return null;
+  const stat = value as LegacyStat;
+  if (Array.isArray(stat.sets)) {
+    const sets = stat.sets.map(asSet);
+    return sets.length > 0 ? { sets } : null;
+  }
+  if ("weight" in stat || "reps" in stat) {
+    return {
+      sets: [
+        {
+          weight: typeof stat.weight === "string" ? stat.weight : "",
+          reps: typeof stat.reps === "string" ? stat.reps : "",
+        },
+      ],
+    };
+  }
+  return null;
+}
+
+export function parseStats(raw: string | null): { book: StatBook; migrated: boolean } {
+  if (!raw) return { book: {}, migrated: false };
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const book: StatBook = {};
+    let migrated = false;
+    for (const [name, value] of Object.entries(parsed)) {
+      const record = recordFromStored(value);
+      if (!record) continue;
+      book[name] = record;
+      const original = value as LegacyStat;
+      if (!Array.isArray(original?.sets)) migrated = true;
+    }
+    return { book, migrated };
+  } catch {
+    return { book: {}, migrated: false };
+  }
+}
 
 export function loadStats(): StatBook {
   try {
-    const raw = localStorage.getItem(STATS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, Partial<ExerciseStat>>;
-    const book: StatBook = {};
-    for (const [name, stat] of Object.entries(parsed)) {
-      if (!stat || typeof stat !== "object") continue;
-      book[name] = {
-        weight: typeof stat.weight === "string" ? stat.weight : "",
-        reps: typeof stat.reps === "string" ? stat.reps : "",
-      };
-    }
+    const { book, migrated } = parseStats(localStorage.getItem(STATS_KEY));
+    if (migrated) saveStats(book);
     return book;
   } catch {
     return {};
@@ -59,16 +113,33 @@ export function isBlank(value: string): boolean {
   return value.trim() === "";
 }
 
-/** Keep an exercise's previous stats when both new inputs are empty. */
+export function setIsBlank(row: SetStat): boolean {
+  return isBlank(row.weight) && isBlank(row.reps);
+}
+
+export interface SessionEntry {
+  name: string;
+  sets: SetStat[];
+}
+
+/**
+ * Empty set rows keep that set's previous numbers.
+ * An exercise whose sets are all empty is left untouched, including its set count.
+ */
 export function applySession(
   book: StatBook,
-  entries: Array<{ name: string; weight: string; reps: string }>,
+  entries: SessionEntry[],
 ): { book: StatBook; saved: number } {
   const next: StatBook = { ...book };
   let saved = 0;
   for (const entry of entries) {
-    if (isBlank(entry.weight) && isBlank(entry.reps)) continue;
-    next[entry.name] = { weight: entry.weight.trim(), reps: entry.reps.trim() };
+    if (entry.sets.length === 0 || entry.sets.every(setIsBlank)) continue;
+    const previous = book[entry.name]?.sets ?? [];
+    const sets = entry.sets.map((row, index) => {
+      if (setIsBlank(row)) return previous[index] ? { ...previous[index] } : blankSet();
+      return { weight: row.weight.trim(), reps: row.reps.trim() };
+    });
+    next[entry.name] = { sets };
     saved += 1;
   }
   return { book: next, saved };
@@ -77,4 +148,9 @@ export function applySession(
 export function displayStat(value: string | undefined): string {
   if (value == null || value.trim() === "") return "-";
   return value;
+}
+
+export function rememberedSetCount(record: ExerciseRecord | undefined, planSets: number): number {
+  if (record && record.sets.length > 0) return record.sets.length;
+  return planSets >= 1 ? planSets : 3;
 }

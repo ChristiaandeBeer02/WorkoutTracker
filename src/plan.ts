@@ -358,6 +358,7 @@ export function nextTrackerDay(day: DayId): { id: DayId; label: string } {
 export interface TrackerSlot {
   id: string;
   options: string[];
+  sets: number;
 }
 
 const TRACKER_TABLES: Record<DayId, DataTable[]> = {
@@ -372,6 +373,15 @@ function exerciseNames(cell: Cell): string[] {
   return cell.flatMap((part) => (part.kind === "ex" ? [part.name] : []));
 }
 
+/** Leading "3 × …" in the plan is that exercise's default set count. */
+export function planSetCount(cell: Cell | undefined): number {
+  if (typeof cell !== "string") return 3;
+  const match = /^(\d+)\s*×/.exec(cell.trim());
+  if (!match) return 3;
+  const count = Number(match[1]);
+  return count >= 1 ? count : 3;
+}
+
 export function trackerSlots(day: DayId): TrackerSlot[] {
   const slots: TrackerSlot[] = [];
   for (const table of TRACKER_TABLES[day]) {
@@ -383,7 +393,7 @@ export function trackerSlots(day: DayId): TrackerSlot[] {
       for (const name of fallbacks) {
         if (!options.includes(name)) options.push(name);
       }
-      slots.push({ id: primary[0], options });
+      slots.push({ id: primary[0], options, sets: planSetCount(row[2]) });
     }
   }
   return slots;

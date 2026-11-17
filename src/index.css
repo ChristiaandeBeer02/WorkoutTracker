@@ -219,47 +219,105 @@ a {
   padding: 0 8px;
 }
 
-.tracker-scroll {
-  overflow-x: auto;
+.set-card {
   border: 1px solid var(--border);
   border-radius: 12px;
+  padding: 10px;
+  margin: 0 0 12px;
+  background: var(--bg);
 }
 
-.tracker-table {
+.set-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.set-card-head .ex-pick {
+  flex: 1;
+  min-width: 0;
+}
+
+.set-card-head .ex-pick-label {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.set-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.set-actions button {
+  appearance: none;
+  height: 32px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.set-actions button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.set-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 12px;
-  line-height: 16px;
 }
 
-.tracker-table th,
-.tracker-table td {
-  padding: 6px 4px;
-  vertical-align: middle;
-  text-align: start;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.tracker-table tr:last-child td {
-  border-bottom: none;
-}
-
-.tracker-table th {
+.set-table th {
   font-size: 11px;
   font-weight: 650;
   color: var(--text-secondary);
-  background: var(--fill);
+  text-align: start;
+  padding: 0 3px 4px;
+  white-space: nowrap;
 }
 
-.tracker-table th:first-child,
-.tracker-table td:first-child {
-  width: 30%;
-  max-width: 30%;
+.set-table td {
+  padding: 3px;
+  vertical-align: middle;
 }
 
-.tracker-table td:first-child {
-  overflow: hidden;
+.set-table th:first-child,
+.set-table td.set-num {
+  width: 32px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.set-table input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 36px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  padding: 0 4px;
+}
+
+.set-table .prev {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  text-align: end;
 }
 
 .ex-pick {
@@ -297,7 +355,7 @@ a {
   pointer-events: none;
 }
 
-.tracker-table .ex-pick select {
+.ex-pick select {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -306,39 +364,6 @@ a {
   opacity: 0;
   border: none;
   cursor: pointer;
-}
-
-.tracker-table th {
-  white-space: nowrap;
-}
-
-.tracker-table select,
-.tracker-table input {
-  width: 100%;
-  box-sizing: border-box;
-  height: 36px;
-  margin: 0;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
-  padding: 0 4px;
-}
-
-.tracker-table select {
-  font-size: 12px;
-}
-
-.tracker-table input {
-  font-size: 16px;
-}
-
-.tracker-table .prev {
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
-  text-align: end;
 }
 
 .tracker-notice {
