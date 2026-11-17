@@ -1104,6 +1104,10 @@ th.end {
   line-height: 21px;
 }
 
+.ex-figure {
+  margin: 4px 0 12px;
+}
+
 .ex-photo {
   display: block;
   width: 100%;

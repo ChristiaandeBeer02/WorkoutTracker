@@ -10,6 +10,8 @@ import {
   type CatalogueExercise,
 } from "../exercises";
 import { loadDays } from "../days";
+import { Figure } from "./Figure";
+import { paintExercise } from "../muscles";
 import { appendExerciseToDay, cardsForDay, loadTrackerDay } from "../trackerStore";
 
 type DayFilter = string;
@@ -247,6 +249,9 @@ function ExerciseDetail({
           <p>
             <strong>Secondary.</strong> {muscleText(exercise, "secondaryMuscles")}
           </p>
+          <div className="ex-figure">
+            <Figure paint={paintExercise(exercise)} height={210} label={`${row.name} muscles`} />
+          </div>
           {photo ? (
             imageFailed ? (
               <p className="ex-photo-miss">Photo unavailable offline.</p>
