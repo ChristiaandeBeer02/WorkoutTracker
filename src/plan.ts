@@ -350,6 +350,11 @@ export const TRACKER_DAYS: Array<{ id: DayId; label: string }> = [
   { id: "pull", label: "Pull" },
 ];
 
+export function nextTrackerDay(day: DayId): { id: DayId; label: string } {
+  const index = TRACKER_DAYS.findIndex((item) => item.id === day);
+  return TRACKER_DAYS[(index + 1) % TRACKER_DAYS.length];
+}
+
 export interface TrackerSlot {
   id: string;
   options: string[];

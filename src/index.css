@@ -255,6 +255,57 @@ a {
 .tracker-table th:first-child,
 .tracker-table td:first-child {
   width: 30%;
+  max-width: 30%;
+}
+
+.tracker-table td:first-child {
+  overflow: hidden;
+}
+
+.ex-pick {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.ex-pick-label {
+  display: block;
+  min-width: 0;
+  padding: 0 14px 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 34px;
+  pointer-events: none;
+}
+
+.ex-pick::after {
+  content: "";
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  margin-top: -2px;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid var(--text-secondary);
+  pointer-events: none;
+}
+
+.tracker-table .ex-pick select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  border: none;
+  cursor: pointer;
 }
 
 .tracker-table th {
