@@ -48,7 +48,8 @@ export default defineConfig({
       },
       workbox: {
         importScripts: ["rest-sw.js"],
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,json,webmanifest}"],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         navigateFallback: "index.html",
       },
     }),

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { catalogueNameMatches } from "../exercises";
 import { startRestIfIdle } from "../restBridge";
 import { TRACKER_DAYS, nextTrackerDay, trackerSlots, type DayId } from "../plan";
 import {
@@ -108,6 +109,7 @@ export function Tracker() {
     };
     for (const option of card.options) consider(option);
     for (const name of historyExerciseNames(stats)) consider(name);
+    for (const name of catalogueNameMatches(query, seen)) matches.push(name);
     return matches;
   }
 
