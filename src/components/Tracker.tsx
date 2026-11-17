@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDismissOnBack } from "../closeOnBack";
 import { DAYS_CHANGED_EVENT } from "../dayShare";
 import { dayById, isPlanDay, loadDays, nextDay, type TrackerDay } from "../days";
@@ -17,12 +17,20 @@ import {
   saveDayWorkouts,
   saveStats,
   saveTrackerDay,
-  type SetStat,
   type StatBook,
   type WorkoutCard,
 } from "../trackerStore";
-
-const EMPTY_SET: SetStat = { weight: "", reps: "" };
+import {
+  DRAFT_SAVE_MS,
+  loadDraftBook,
+  saveDraftBook,
+  visibleSetRows,
+  withUpdatedCount,
+  withUpdatedSet,
+  withoutCard,
+  withoutDay,
+  type DraftBook,
+} from "../trackerDrafts";
 
 function planCards(day: string, book: StatBook): WorkoutCard[] {
   if (!isPlanDay(day)) {
@@ -50,13 +58,33 @@ export function Tracker() {
   const [day, setDay] = useState(loadTrackerDay);
   const [stats, setStats] = useState<StatBook>(() => loadStats(loadTrackerDay()));
   const [lists, setLists] = useState<Partial<Record<string, WorkoutCard[]>>>({});
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [drafts, setDrafts] = useState<Record<string, SetStat[]>>({});
+  const [draftBook, setDraftBook] = useState<DraftBook>(loadDraftBook);
+  const draftRef = useRef(draftBook);
+  draftRef.current = draftBook;
   const [notice, setNotice] = useState("");
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [naming, setNaming] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
   useDismissOnBack(confirmRemove != null, () => setConfirmRemove(null));
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => saveDraftBook(draftRef.current), DRAFT_SAVE_MS);
+    return () => window.clearTimeout(timer);
+  }, [draftBook]);
+
+  useEffect(() => {
+    const flush = () => saveDraftBook(draftRef.current);
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      flush();
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, []);
 
   function cardsFor(target: string, book: StatBook = stats): WorkoutCard[] {
     return lists[target] ?? loadDayWorkouts(target) ?? planCards(target, book);
@@ -98,27 +126,28 @@ export function Tracker() {
   }
 
   function countFor(card: WorkoutCard): number {
-    const chosen = counts[card.id];
+    const chosen = draftRef.current.counts[day]?.[card.id];
     if (chosen != null) return Math.max(1, chosen);
     return Math.max(1, card.sets);
   }
 
-  function rowsFor(id: string, count: number): SetStat[] {
-    const draft = drafts[id] ?? [];
-    return Array.from({ length: count }, (_, index) => draft[index] ?? EMPTY_SET);
+  function rowsFor(id: string, count: number) {
+    return visibleSetRows(draftBook.sets[day]?.[id], count);
   }
 
-  function updateSet(id: string, index: number, count: number, field: keyof SetStat, value: string) {
-    setDrafts((current) => {
-      const rows = Array.from({ length: count }, (_, row) => current[id]?.[row] ?? EMPTY_SET);
-      rows[index] = { ...rows[index], [field]: value };
-      return { ...current, [id]: rows };
-    });
+  function keepDraft(next: DraftBook) {
+    draftRef.current = next;
+    setDraftBook(next);
+  }
+
+  function updateSet(id: string, index: number, count: number, field: "weight" | "reps", value: string) {
+    keepDraft(withUpdatedSet(draftRef.current, day, id, index, count, field, value));
     setNotice("");
   }
 
   function changeCount(card: WorkoutCard, delta: number) {
-    setCounts((current) => ({ ...current, [card.id]: Math.max(1, countFor(card) + delta) }));
+    const next = Math.max(1, countFor(card) + delta);
+    keepDraft(withUpdatedCount(draftRef.current, day, card.id, next));
     setConfirmRemove(null);
   }
 
@@ -151,6 +180,10 @@ export function Tracker() {
   }
 
   function removeWorkout(id: string) {
+    const next = withoutCard(draftRef.current, day, id);
+    draftRef.current = next;
+    saveDraftBook(next);
+    setDraftBook(next);
     replaceCards(cardsFor(day).filter((card) => card.id !== id));
   }
 
@@ -167,16 +200,10 @@ export function Tracker() {
     saveStats(day, result.book, result.saved > 0 ? new Date().toISOString() : undefined);
     saveDayWorkouts(day, cards);
     setLists((current) => ({ ...current, [day]: cards }));
-    setDrafts((current) => {
-      const next = { ...current };
-      for (const card of cards) delete next[card.id];
-      return next;
-    });
-    setCounts((current) => {
-      const next = { ...current };
-      for (const card of cards) delete next[card.id];
-      return next;
-    });
+    const cleared = withoutDay(draftRef.current, day);
+    draftRef.current = cleared;
+    saveDraftBook(cleared);
+    setDraftBook(cleared);
     const finished = dayById(days, day);
     const upcoming = nextDay(days, day);
     setDay(upcoming.id);
