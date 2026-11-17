@@ -17,6 +17,11 @@ export interface ExerciseRecord {
 
 export type StatBook = Record<string, ExerciseRecord>;
 
+export interface DayLog {
+  loggedAt: string | null;
+  book: StatBook;
+}
+
 function blankSet(): SetStat {
   return { weight: "", reps: "" };
 }
@@ -39,7 +44,28 @@ function recordFromStored(value: unknown): ExerciseRecord | null {
 
 interface StatsFile {
   version: 2;
-  days: Record<string, StatBook>;
+  days: Record<string, DayLog>;
+}
+
+function bookFrom(value: unknown): StatBook {
+  const book: StatBook = {};
+  if (!value || typeof value !== "object") return book;
+  for (const [name, entry] of Object.entries(value as Record<string, unknown>)) {
+    const record = recordFromStored(entry);
+    if (record) book[name] = record;
+  }
+  return book;
+}
+
+function logFrom(value: unknown): DayLog {
+  if (value && typeof value === "object" && "book" in (value as object)) {
+    const wrapped = value as { loggedAt?: unknown; book?: unknown };
+    return {
+      loggedAt: typeof wrapped.loggedAt === "string" ? wrapped.loggedAt : null,
+      book: bookFrom(wrapped.book),
+    };
+  }
+  return { loggedAt: null, book: bookFrom(value) };
 }
 
 function dropLegacyKeys(): void {
@@ -59,15 +85,9 @@ function readStatsFile(): StatsFile {
     if (!parsed || parsed.version !== 2 || !parsed.days || typeof parsed.days !== "object") {
       return { version: 2, days: {} };
     }
-    const days: Record<string, StatBook> = {};
+    const days: Record<string, DayLog> = {};
     for (const [dayId, value] of Object.entries(parsed.days as Record<string, unknown>)) {
-      const book: StatBook = {};
-      if (!value || typeof value !== "object") continue;
-      for (const [name, entry] of Object.entries(value as Record<string, unknown>)) {
-        const record = recordFromStored(entry);
-        if (record) book[name] = record;
-      }
-      days[dayId] = book;
+      days[dayId] = logFrom(value);
     }
     return { version: 2, days };
   } catch {
@@ -79,18 +99,26 @@ function writeStatsFile(file: StatsFile): void {
   localStorage.setItem(STATS_KEY, JSON.stringify(file));
 }
 
-export function loadStats(dayId: string): StatBook {
+export function loadDayLog(dayId: string): DayLog {
   try {
-    return readStatsFile().days[dayId] ?? {};
+    return readStatsFile().days[dayId] ?? { loggedAt: null, book: {} };
   } catch {
-    return {};
+    return { loggedAt: null, book: {} };
   }
 }
 
-export function saveStats(dayId: string, book: StatBook): void {
+export function loadStats(dayId: string): StatBook {
+  return loadDayLog(dayId).book;
+}
+
+export function saveStats(dayId: string, book: StatBook, loggedAt?: string): void {
   try {
     const file = readStatsFile();
-    file.days[dayId] = book;
+    const previous = file.days[dayId];
+    file.days[dayId] = {
+      book,
+      loggedAt: loggedAt ?? previous?.loggedAt ?? null,
+    };
     writeStatsFile(file);
   } catch {
     // The session still updates on screen if storage is blocked.

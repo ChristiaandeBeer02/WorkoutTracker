@@ -1,6 +1,6 @@
 # Workouts
 
-A phone-first workout plan: legs, push, cardio + core, and pull. Each day shows the muscles it trains and the sets to do. Tap an exercise, including a fallback, for the muscles it works and a YouTube search for the movement.
+A phone-first workout log. Home shows the last session for each day, and the muscles those days train.
 
 Muscle figures use path data from [MuscleMap](https://github.com/Jsplice/MuscleMap) (MIT). The notice is in `src/anatomy.ts`.
 
