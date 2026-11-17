@@ -153,7 +153,7 @@ export function Tracker() {
       .filter((card) => card.name.length > 0)
       .map((card) => ({ name: card.name, sets: rowsFor(card.id, card.sets) }));
     const result = applySession(stats, entries);
-    saveStats(day, result.book);
+    saveStats(day, result.book, result.saved > 0 ? new Date().toISOString() : undefined);
     saveDayWorkouts(day, cards);
     setLists((current) => ({ ...current, [day]: cards }));
     setDrafts((current) => {
