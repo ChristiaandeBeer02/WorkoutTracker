@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { capitalise } from "../format";
-import { TRACKER_DAYS, trackerSlots, type DayId } from "../plan";
+import { TRACKER_DAYS, nextTrackerDay, trackerSlots, type DayId } from "../plan";
 import {
   applySession,
   displayStat,
@@ -59,7 +59,15 @@ export function Tracker() {
       }
       return next;
     });
-    setNotice(result.saved === 0 ? "Nothing new to save." : "Saved.");
+    const finished = TRACKER_DAYS.find((item) => item.id === day) ?? TRACKER_DAYS[0];
+    const upcoming = nextTrackerDay(day);
+    setDay(upcoming.id);
+    saveTrackerDay(upcoming.id);
+    setNotice(
+      result.saved === 0
+        ? `Nothing new to save. Next up: ${upcoming.label}`
+        : `Saved ${finished.label}. Next up: ${upcoming.label}`,
+    );
   }
 
   return (
@@ -104,20 +112,23 @@ export function Tracker() {
               return (
                 <tr key={slot.id}>
                   <td>
-                    <select
-                      aria-label={`Exercise, ${capitalise(slot.options[0])}`}
-                      title={capitalise(name)}
-                      value={name}
-                      onChange={(event) =>
-                        setChoice((current) => ({ ...current, [slot.id]: event.target.value }))
-                      }
-                    >
-                      {slot.options.map((option) => (
-                        <option key={option} value={option}>
-                          {capitalise(option)}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="ex-pick">
+                      <span className="ex-pick-label">{capitalise(name)}</span>
+                      <select
+                        aria-label={`Exercise, ${capitalise(slot.options[0])}`}
+                        title={capitalise(name)}
+                        value={name}
+                        onChange={(event) =>
+                          setChoice((current) => ({ ...current, [slot.id]: event.target.value }))
+                        }
+                      >
+                        {slot.options.map((option) => (
+                          <option key={option} value={option}>
+                            {capitalise(option)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </td>
                   <td>
                     <input
