@@ -1071,15 +1071,25 @@ th.end {
 
 .text-back {
   appearance: none;
-  margin: 0 0 8px;
-  padding: 0;
+  display: block;
+  margin: 0 0 10px;
+  padding: 2px 0;
   border: none;
   background: none;
   color: var(--accent);
   font: inherit;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 24px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.heart-line {
+  margin: 0 0 8px;
+  color: var(--text-secondary);
   font-size: 15px;
   font-weight: 650;
-  cursor: pointer;
 }
 
 .ex-detail h2 {

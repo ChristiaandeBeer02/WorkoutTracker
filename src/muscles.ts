@@ -1,7 +1,7 @@
 import type { MuscleGroup } from "./anatomy";
 import type { TrackerDay } from "./days";
 import { isPlanDay } from "./days";
-import { catalogueByName } from "./exercises";
+import { catalogueByName, exerciseIsCardio } from "./exercises";
 import { CARDIO_LEGS, CORE_SET, EXERCISES, LEGS, PULL, PUSH } from "./plan";
 import { cardsForDay } from "./trackerStore";
 
@@ -81,4 +81,10 @@ export function musclesForDay(day: TrackerDay): MuscleGroup[] {
 
 export function muscleLine(groups: readonly MuscleGroup[]): string {
   return groups.map((group) => GROUP_LABEL[group]).join(", ");
+}
+
+export function dayHasCardio(day: TrackerDay): boolean {
+  return cardsForDay(day.id).some(
+    (card) => exerciseIsCardio(card.name) || card.options.some((option) => exerciseIsCardio(option)),
+  );
 }

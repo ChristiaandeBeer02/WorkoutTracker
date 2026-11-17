@@ -7,7 +7,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { Tracker } from "./components/Tracker";
 import { OPACITY } from "./colors";
 import { loadDays } from "./days";
-import { muscleLine, musclesForDay } from "./muscles";
+import { dayHasCardio, muscleLine, musclesForDay } from "./muscles";
 import { paintAll, type Paint } from "./paint";
 import { loadDayLog, type DayLog } from "./trackerStore";
 import { useTheme } from "./theme";
@@ -85,7 +85,14 @@ function Page() {
         {anyLogged ? (
           <div className="last-list">
             {cards.map((card) => (
-              <LastCard key={card.day.id} name={card.day.name} color={card.day.color} muscles={muscleLine(card.muscles)} log={card.log} />
+              <LastCard
+                key={card.day.id}
+                name={card.day.name}
+                color={card.day.color}
+                muscles={muscleLine(card.muscles)}
+                cardio={dayHasCardio(card.day)}
+                log={card.log}
+              />
             ))}
           </div>
         ) : (
@@ -100,11 +107,13 @@ function LastCard({
   name,
   color,
   muscles,
+  cardio,
   log,
 }: {
   name: string;
   color: string;
   muscles: string;
+  cardio: boolean;
   log: DayLog;
 }) {
   const entries = Object.entries(log.book);
@@ -112,6 +121,7 @@ function LastCard({
     <article className="last-card" style={{ borderLeftColor: color }}>
       <h3>{name}</h3>
       {muscles ? <p className="last-muscles">{muscles}</p> : null}
+      {cardio ? <p className="last-muscles">Heart & lungs</p> : null}
       {entries.length === 0 ? (
         <p className="last-empty">No exercise recorded</p>
       ) : (
