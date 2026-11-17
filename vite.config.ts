@@ -51,6 +51,22 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,ico,json,webmanifest}"],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         navigateFallback: "index.html",
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/raw\.githubusercontent\.com\/yuhonas\/free-exercise-db\/main\/exercises\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "exercise-images",
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
       },
     }),
   ],

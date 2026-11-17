@@ -21,6 +21,7 @@ import {
 } from "./plan";
 import { paintAll, type Paint } from "./paint";
 import { RestBar } from "./components/RestBar";
+import { ExercisePage } from "./components/ExercisePage";
 import { Tracker } from "./components/Tracker";
 import { useTheme } from "./theme";
 
@@ -47,7 +48,7 @@ export function App() {
   return (
     <>
       <RestBar />
-      {view === "home" ? <Page /> : <Tracker />}
+      {view === "home" ? <Page /> : view === "tracker" ? <Tracker /> : <ExercisePage />}
       <BottomNav view={view} onChange={changeView} />
     </>
   );

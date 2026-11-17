@@ -908,3 +908,172 @@ th.end {
     line-height: 22px;
   }
 }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ex-search input,
+.ex-filters select,
+.add-day select {
+  width: 100%;
+  box-sizing: border-box;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  padding: 0 8px;
+}
+
+.ex-search {
+  display: block;
+  margin: 0 0 10px;
+}
+
+.ex-filters {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.ex-filters label,
+.add-day label {
+  display: grid;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.ex-count,
+.ex-empty,
+.ex-detail-meta,
+.ex-photo-miss {
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.ex-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ex-list li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.ex-list button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  margin: 0;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.ex-list-name {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.ex-list-meta {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.text-back {
+  appearance: none;
+  margin: 0 0 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ex-detail h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 30px;
+}
+
+.ex-detail p {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 21px;
+}
+
+.ex-photo {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  margin: 4px 0 12px;
+  border-radius: 12px;
+  background: var(--fill);
+}
+
+.ex-steps {
+  margin: 0 0 16px;
+  padding-left: 20px;
+}
+
+.ex-steps li {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 21px;
+}
+
+.add-day {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.add-day label {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-day button {
+  appearance: none;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--on-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.add-day button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}

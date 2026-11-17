@@ -22,8 +22,43 @@ export const EXERCISE_IMAGE_BASE =
   "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
 
 export function exerciseImageUrl(path: string): string {
-  return `${EXERCISE_IMAGE_BASE}${path}`;
+  const encoded = path
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  return `${EXERCISE_IMAGE_BASE}${encoded}`;
 }
+
+const BY_NAME = new Map<string, CatalogueExercise>();
+for (const exercise of EXERCISE_CATALOGUE) {
+  BY_NAME.set(exercise.name.trim().toLowerCase(), exercise);
+}
+
+export function catalogueByName(name: string): CatalogueExercise | undefined {
+  return BY_NAME.get(name.trim().toLowerCase());
+}
+
+export function labelize(value: string): string {
+  return value
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function uniqueSorted(values: Array<string | null | undefined>): string[] {
+  const found = new Set<string>();
+  for (const value of values) {
+    if (value && value.trim()) found.add(value.trim());
+  }
+  return [...found].sort((a, b) => a.localeCompare(b));
+}
+
+export const CATALOGUE_MUSCLES = uniqueSorted(
+  EXERCISE_CATALOGUE.flatMap((exercise) => [...exercise.primaryMuscles, ...exercise.secondaryMuscles]),
+);
+
+export const CATALOGUE_EQUIPMENT = uniqueSorted(EXERCISE_CATALOGUE.map((exercise) => exercise.equipment));
 
 const SUGGESTION_CAP = 20;
 

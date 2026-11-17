@@ -1,11 +1,11 @@
-export type AppView = "home" | "tracker";
+export type AppView = "home" | "tracker" | "exercise";
 
 const VIEW_KEY = "workout-tracker-view";
 
 export function loadAppView(): AppView {
   try {
     const raw = localStorage.getItem(VIEW_KEY);
-    if (raw === "home" || raw === "tracker") return raw;
+    if (raw === "home" || raw === "tracker" || raw === "exercise") return raw;
   } catch {
     // Storage can be blocked. Home is the default.
   }
@@ -32,6 +32,13 @@ export function BottomNav({ view, onChange }: { view: AppView; onChange: (view: 
         onClick={() => onChange("tracker")}
       >
         Tracker
+      </button>
+      <button
+        type="button"
+        aria-current={view === "exercise" ? "page" : undefined}
+        onClick={() => onChange("exercise")}
+      >
+        Exercise
       </button>
     </nav>
   );

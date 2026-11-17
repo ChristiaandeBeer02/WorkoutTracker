@@ -1,4 +1,4 @@
-import { TRACKER_DAYS, type DayId } from "./plan";
+import { TRACKER_DAYS, trackerSlots, type DayId } from "./plan";
 
 const STATS_KEY = "workout-tracker-stats";
 const DAY_KEY = "workout-tracker-day";
@@ -209,6 +209,33 @@ export function historyExerciseNames(book: StatBook): string[] {
     // Stats names are still usable.
   }
   return names;
+}
+
+/** Saved list, or the plan for that day when nothing has been saved yet. */
+export function cardsForDay(day: DayId): WorkoutCard[] {
+  const saved = loadDayWorkouts(day);
+  if (saved) return saved;
+  const book = loadStats();
+  return trackerSlots(day).map((slot) => ({
+    id: slot.id,
+    name: slot.options[0],
+    options: slot.options,
+    sets: rememberedSetCount(book[slot.options[0]], slot.sets),
+  }));
+}
+
+/** Append one exercise card and persist the day, including the plan if it was still unsaved. */
+export function appendExerciseToDay(day: DayId, name: string): void {
+  const cards = [
+    ...cardsForDay(day),
+    {
+      id: `added-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      name,
+      options: [],
+      sets: 3,
+    },
+  ];
+  saveDayWorkouts(day, cards);
 }
 
 export function saveDayWorkouts(day: DayId, cards: WorkoutCard[]): void {
