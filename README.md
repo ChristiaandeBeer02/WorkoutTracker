@@ -4,6 +4,8 @@ A phone-first workout plan: legs, push, cardio + core, and pull. Each day shows 
 
 Muscle figures use path data from [MuscleMap](https://github.com/Jsplice/MuscleMap) (MIT). The notice is in `src/anatomy.ts`.
 
+The exercise catalogue is [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense), bundled for offline search. Photos load from that repository the first time they are opened.
+
 There are no kilogram loads. The tables use rep ranges only. Day colours can be changed from the Colours panel and are saved in this browser.
 
 Home and Tracker share a bottom menu. Tracker logs weight and reps for the same exercises as each day. Only the last session is kept on this phone. Submit writes the filled rows and leaves empty ones as they were.
