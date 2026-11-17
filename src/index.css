@@ -574,6 +574,55 @@ p {
   display: inline-block;
 }
 
+.coverage {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.muscle-box {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--fill);
+}
+
+.muscle-box-title {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.muscle-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.muscle-dots li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.muscle-empty,
+.muscle-missing {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.last-card .muscle-box {
+  margin: 0 0 8px;
+}
+
 .figure {
   max-width: 560px;
   width: 100%;
