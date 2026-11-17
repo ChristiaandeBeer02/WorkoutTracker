@@ -8,10 +8,10 @@ import {
   labelize,
   type CatalogueExercise,
 } from "../exercises";
-import { TRACKER_DAYS, type DayId } from "../plan";
+import { loadDays } from "../days";
 import { appendExerciseToDay, cardsForDay, loadTrackerDay } from "../trackerStore";
 
-type DayFilter = DayId | "all";
+type DayFilter = string;
 
 interface Row {
   key: string;
@@ -43,7 +43,8 @@ export function ExercisePage() {
   const [equipment, setEquipment] = useState("all");
   const [day, setDay] = useState<DayFilter>("all");
   const [openKey, setOpenKey] = useState<string | null>(null);
-  const [addDay, setAddDay] = useState<DayId>(loadTrackerDay);
+  const [addDay, setAddDay] = useState(loadTrackerDay);
+  const days = loadDays();
   const [notice, setNotice] = useState("");
   const [revision, setRevision] = useState(0);
 
@@ -76,7 +77,7 @@ export function ExercisePage() {
     if (!open) return;
     appendExerciseToDay(addDay, open.name);
     setRevision((value) => value + 1);
-    const label = TRACKER_DAYS.find((item) => item.id === addDay)?.label ?? "that day";
+    const label = days.find((item) => item.id === addDay)?.name ?? "that day";
     setNotice(`Added to ${label}`);
   }
 
@@ -89,6 +90,7 @@ export function ExercisePage() {
           row={open}
           addDay={addDay}
           notice={notice}
+          days={days}
           onAddDay={setAddDay}
           onAdd={addOpenToDay}
           onBack={() => {
@@ -140,9 +142,9 @@ export function ExercisePage() {
                 }}
               >
                 <option value="all">All</option>
-                {TRACKER_DAYS.map((item) => (
+                {days.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.label}
+                    {item.name}
                   </option>
                 ))}
               </select>
@@ -179,14 +181,16 @@ function ExerciseDetail({
   row,
   addDay,
   notice,
+  days,
   onAddDay,
   onAdd,
   onBack,
 }: {
   row: Row;
-  addDay: DayId;
+  addDay: string;
   notice: string;
-  onAddDay: (day: DayId) => void;
+  days: Array<{ id: string; name: string }>;
+  onAddDay: (day: string) => void;
   onAdd: () => void;
   onBack: () => void;
 }) {
@@ -241,10 +245,10 @@ function ExerciseDetail({
       <div className="add-day">
         <label>
           Add to
-          <select value={addDay} onChange={(event) => onAddDay(event.target.value as DayId)}>
-            {TRACKER_DAYS.map((item) => (
+          <select value={addDay} onChange={(event) => onAddDay(event.target.value)}>
+            {days.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.label}
+                {item.name}
               </option>
             ))}
           </select>

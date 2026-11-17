@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { dayById, isPlanDay, loadDays, nextDay, type TrackerDay } from "../days";
 import { catalogueNameMatches } from "../exercises";
+import { ManageDays } from "./ManageDays";
 import { startRestIfIdle } from "../restBridge";
-import { TRACKER_DAYS, nextTrackerDay, trackerSlots, type DayId } from "../plan";
+import { trackerSlots } from "../plan";
 import {
   applySession,
   displayStat,
-  historyExerciseNames,
   loadDayWorkouts,
   loadStats,
   loadTrackerDay,
@@ -20,7 +21,10 @@ import {
 
 const EMPTY_SET: SetStat = { weight: "", reps: "" };
 
-function planCards(day: DayId, book: StatBook): WorkoutCard[] {
+function planCards(day: string, book: StatBook): WorkoutCard[] {
+  if (!isPlanDay(day)) {
+    return [freshCard()];
+  }
   return trackerSlots(day).map((slot) => ({
     id: slot.id,
     name: slot.options[0],
@@ -39,30 +43,48 @@ function freshCard(): WorkoutCard {
 }
 
 export function Tracker() {
-  const [day, setDay] = useState<DayId>(loadTrackerDay);
-  const [stats, setStats] = useState<StatBook>(loadStats);
-  const [lists, setLists] = useState<Partial<Record<DayId, WorkoutCard[]>>>({});
+  const [days, setDays] = useState<TrackerDay[]>(loadDays);
+  const [day, setDay] = useState(loadTrackerDay);
+  const [stats, setStats] = useState<StatBook>(() => loadStats(loadTrackerDay()));
+  const [lists, setLists] = useState<Partial<Record<string, WorkoutCard[]>>>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [drafts, setDrafts] = useState<Record<string, SetStat[]>>({});
   const [notice, setNotice] = useState("");
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [naming, setNaming] = useState<string | null>(null);
+  const [managing, setManaging] = useState(false);
 
-  function cardsFor(target: DayId, book: StatBook = stats): WorkoutCard[] {
+  function cardsFor(target: string, book: StatBook = stats): WorkoutCard[] {
     return lists[target] ?? loadDayWorkouts(target) ?? planCards(target, book);
   }
 
   function replaceCards(next: WorkoutCard[]) {
     setLists((current) => ({ ...current, [day]: next }));
+    saveDayWorkouts(day, next);
     setNotice("");
     setConfirmRemove(null);
   }
 
-  function chooseDay(next: DayId) {
+  function chooseDay(next: string) {
     setDay(next);
+    setStats(loadStats(next));
     saveTrackerDay(next);
     setNotice("");
     setConfirmRemove(null);
+  }
+
+  function refreshDays() {
+    const next = loadDays();
+    setDays(next);
+    setLists({});
+    if (!next.some((item) => item.id === day)) {
+      const fallback = next[0];
+      setDay(fallback.id);
+      saveTrackerDay(fallback.id);
+      setStats(loadStats(fallback.id));
+    } else {
+      setStats(loadStats(day));
+    }
   }
 
   function countFor(card: WorkoutCard): number {
@@ -108,7 +130,7 @@ export function Tracker() {
       matches.push(name);
     };
     for (const option of card.options) consider(option);
-    for (const name of historyExerciseNames(stats)) consider(name);
+    for (const name of Object.keys(stats)) consider(name);
     for (const name of catalogueNameMatches(query, seen)) matches.push(name);
     return matches;
   }
@@ -131,8 +153,7 @@ export function Tracker() {
       .filter((card) => card.name.length > 0)
       .map((card) => ({ name: card.name, sets: rowsFor(card.id, card.sets) }));
     const result = applySession(stats, entries);
-    saveStats(result.book);
-    setStats(result.book);
+    saveStats(day, result.book);
     saveDayWorkouts(day, cards);
     setLists((current) => ({ ...current, [day]: cards }));
     setDrafts((current) => {
@@ -145,15 +166,16 @@ export function Tracker() {
       for (const card of cards) delete next[card.id];
       return next;
     });
-    const finished = TRACKER_DAYS.find((item) => item.id === day) ?? TRACKER_DAYS[0];
-    const upcoming = nextTrackerDay(day);
+    const finished = dayById(days, day);
+    const upcoming = nextDay(days, day);
     setDay(upcoming.id);
     saveTrackerDay(upcoming.id);
+    setStats(loadStats(upcoming.id));
     setConfirmRemove(null);
     setNotice(
       result.saved === 0
-        ? `Nothing new to save. Next up: ${upcoming.label}`
-        : `Saved ${finished.label}. Next up: ${upcoming.label}`,
+        ? `Nothing new to save. Next up: ${upcoming.name}`
+        : `Saved ${finished.name}. Next up: ${upcoming.name}`,
     );
   }
 
@@ -162,20 +184,22 @@ export function Tracker() {
   return (
     <main className="page">
       <h1>Tracker</h1>
-      <label className="day-picker">
-        <span>Day</span>
-        <select
-          aria-label="Exercise day"
-          value={day}
-          onChange={(event) => chooseDay(event.target.value as DayId)}
-        >
-          {TRACKER_DAYS.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="day-picker">
+        <label>
+          <span>Day</span>
+          <select aria-label="Exercise day" value={day} onChange={(event) => chooseDay(event.target.value)}>
+            {days.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" className="manage-open" onClick={() => setManaging(true)}>
+          Manage days
+        </button>
+      </div>
+      {managing ? <ManageDays onChange={refreshDays} onClose={() => setManaging(false)} /> : null}
       {notice ? (
         <p className="tracker-notice" role="status">
           {notice}
