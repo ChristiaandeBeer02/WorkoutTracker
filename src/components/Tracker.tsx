@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { capitalise } from "../format";
+import { startRestIfIdle } from "../restBridge";
 import { TRACKER_DAYS, nextTrackerDay, trackerSlots, type DayId } from "../plan";
 import {
   applySession,
@@ -143,7 +144,12 @@ export function Tracker() {
                       aria-label={`${capitalise(name)} reps`}
                       inputMode="numeric"
                       value={draft.reps}
-                      onChange={(event) => updateDraft(name, "reps", event.target.value)}
+                      onChange={(event) => {
+                        const next = event.target.value;
+                        const added = next.length > draft.reps.length;
+                        updateDraft(name, "reps", next);
+                        if (added) startRestIfIdle();
+                      }}
                     />
                   </td>
                   <td className="prev">{displayStat(previous?.weight)}</td>

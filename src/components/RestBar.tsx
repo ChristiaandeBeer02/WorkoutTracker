@@ -6,6 +6,7 @@ import {
   requestNotifyPermission,
   scheduleRestAlert,
 } from "../restAlert";
+import { setRestStarter } from "../restBridge";
 import {
   formatRemaining,
   loadRestState,
@@ -67,18 +68,21 @@ export function RestBar() {
   }
 
   function start() {
-    if (state.status === "running") return;
+    const current = stateRef.current;
+    if (current.status === "running") return;
     requestNotifyPermission();
     armBeep();
-    const endAt = Date.now() + state.durationMs;
+    const endAt = Date.now() + current.durationMs;
     commit({
-      durationMs: state.durationMs,
+      durationMs: current.durationMs,
       endAt,
       status: "running",
       notified: false,
     });
     void scheduleRestAlert(endAt);
   }
+
+  useEffect(() => setRestStarter(start));
 
   function reset() {
     commit({
