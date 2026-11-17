@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { MuscleGroup } from "../anatomy";
+import { CloseOnBack } from "../closeOnBack";
 import { saveCustomExercise } from "../customExercises";
 import { EXERCISE_CATALOGUE, catalogueByName, labelize } from "../exercises";
 import { CATALOGUE_MUSCLE_NAMES, DB_MUSCLE_REGIONS, paintWorked } from "../muscles";
@@ -103,6 +104,7 @@ export function MapDialog({
 }) {
   return (
     <>
+      <CloseOnBack onClose={onClose} />
       <button type="button" className="backdrop" aria-label="Close link muscles" onClick={onClose} />
       <div className="manage-pop" role="dialog" aria-modal="true" aria-labelledby="map-title">
         <h2 id="map-title">Link muscles</h2>

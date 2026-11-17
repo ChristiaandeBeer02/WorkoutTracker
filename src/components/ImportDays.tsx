@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CloseOnBack } from "../closeOnBack";
 import { applySharedDays, dayNameTaken, notifyDaysChanged } from "../dayShare";
 import { loadDays } from "../days";
 import {
@@ -90,6 +91,7 @@ export function ImportDays({
 
   return (
     <>
+      <CloseOnBack onClose={onClose} />
       <button type="button" className="backdrop share-layer" aria-label="Close import" onClick={onClose} />
       <div className="manage-pop share-layer" role="dialog" aria-modal="true" aria-labelledby="import-title">
         <h2 id="import-title">Import days</h2>

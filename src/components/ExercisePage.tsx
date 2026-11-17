@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { modalDepth, retreat, useDismissOnBack } from "../closeOnBack";
 import {
   CATALOGUE_EQUIPMENT,
   CATALOGUE_MUSCLES,
@@ -123,8 +124,8 @@ export function ExercisePage() {
 
   function requestBack() {
     const state = history.state as { exerciseDetail?: boolean } | null;
-    if (state?.exerciseDetail) {
-      history.back();
+    if (state?.exerciseDetail || modalDepth() > 0) {
+      retreat(state?.exerciseDetail ? 1 : 0);
       return;
     }
     setOpenKey(null);
@@ -376,6 +377,7 @@ function CustomDetail({
   const [cardio, setCardio] = useState(item.cardio);
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  useDismissOnBack(confirmDelete, () => setConfirmDelete(false));
 
   return (
     <article className="ex-detail">
