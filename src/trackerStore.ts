@@ -191,6 +191,26 @@ export function loadDayWorkouts(day: DayId): WorkoutCard[] | null {
   }
 }
 
+/** Names from logged stats and saved day lists, for name suggestions. */
+export function historyExerciseNames(book: StatBook): string[] {
+  const names: string[] = [];
+  for (const name of Object.keys(book)) names.push(name);
+  try {
+    const raw = localStorage.getItem(LISTS_KEY);
+    if (!raw) return names;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    for (const list of Object.values(parsed)) {
+      if (!Array.isArray(list)) continue;
+      for (const card of list) {
+        if (isWorkoutCard(card)) names.push(card.name);
+      }
+    }
+  } catch {
+    // Stats names are still usable.
+  }
+  return names;
+}
+
 export function saveDayWorkouts(day: DayId, cards: WorkoutCard[]): void {
   try {
     const raw = localStorage.getItem(LISTS_KEY);

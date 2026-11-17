@@ -227,6 +227,11 @@ a {
   background: var(--bg);
 }
 
+.set-card:focus-within {
+  position: relative;
+  z-index: 24;
+}
+
 .set-card-head {
   display: flex;
   align-items: center;
@@ -258,20 +263,46 @@ a {
   white-space: nowrap;
 }
 
-.ex-name.has-picks input {
-  padding-right: 22px;
+.ex-name:focus-within {
+  z-index: 25;
 }
 
-.ex-name.has-picks::after {
-  content: "";
+.ex-suggest {
   position: absolute;
-  right: 8px;
-  top: 50%;
-  margin-top: -2px;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid var(--text-secondary);
-  pointer-events: none;
+  z-index: 25;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.ex-suggest button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+}
+
+.ex-suggest button:active {
+  background: var(--fill);
 }
 
 .remove-workout {

@@ -4,6 +4,7 @@ import { TRACKER_DAYS, nextTrackerDay, trackerSlots, type DayId } from "../plan"
 import {
   applySession,
   displayStat,
+  historyExerciseNames,
   loadDayWorkouts,
   loadStats,
   loadTrackerDay,
@@ -44,6 +45,7 @@ export function Tracker() {
   const [drafts, setDrafts] = useState<Record<string, SetStat[]>>({});
   const [notice, setNotice] = useState("");
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [naming, setNaming] = useState<string | null>(null);
 
   function cardsFor(target: DayId, book: StatBook = stats): WorkoutCard[] {
     return lists[target] ?? loadDayWorkouts(target) ?? planCards(target, book);
@@ -89,6 +91,24 @@ export function Tracker() {
 
   function rename(id: string, name: string) {
     replaceCards(cardsFor(day).map((card) => (card.id === id ? { ...card, name } : card)));
+  }
+
+  function suggestionsFor(card: WorkoutCard): string[] {
+    const query = card.name.trim().toLowerCase();
+    if (!query) return [];
+    const seen = new Set<string>();
+    const matches: string[] = [];
+    const consider = (raw: string) => {
+      const name = raw.trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (seen.has(key) || key === query || !key.includes(query)) return;
+      seen.add(key);
+      matches.push(name);
+    };
+    for (const option of card.options) consider(option);
+    for (const name of historyExerciseNames(stats)) consider(name);
+    return matches;
   }
 
   function addWorkout() {
@@ -164,25 +184,43 @@ export function Tracker() {
         const count = countFor(card);
         const rows = rowsFor(card.id, count);
         const previous = stats[card.name.trim()]?.sets ?? [];
-        const listId = `picks-${card.id.replace(/[^a-z0-9_-]/gi, "-")}`;
         const label = card.name.trim() || "Exercise";
+        const suggestions = naming === card.id ? suggestionsFor(card) : [];
         return (
           <section className="set-card" key={card.id} aria-label={label}>
             <header className="set-card-head">
-              <div className={card.options.length > 0 ? "ex-name has-picks" : "ex-name"}>
+              <div className="ex-name">
                 <input
                   aria-label={`Exercise name, ${label}`}
+                  aria-autocomplete="list"
+                  aria-expanded={suggestions.length > 0}
                   placeholder="Exercise"
                   value={card.name}
-                  list={card.options.length > 0 ? listId : undefined}
-                  onChange={(event) => rename(card.id, event.target.value)}
+                  onFocus={() => setNaming(card.id)}
+                  onBlur={() => setNaming((current) => (current === card.id ? null : current))}
+                  onChange={(event) => {
+                    rename(card.id, event.target.value);
+                    setNaming(card.id);
+                  }}
                 />
-                {card.options.length > 0 ? (
-                  <datalist id={listId}>
-                    {card.options.map((option) => (
-                      <option key={option} value={option} />
+                {suggestions.length > 0 ? (
+                  <ul className="ex-suggest" role="listbox">
+                    {suggestions.map((suggestion) => (
+                      <li key={suggestion}>
+                        <button
+                          type="button"
+                          role="option"
+                          onPointerDown={(event) => event.preventDefault()}
+                          onClick={() => {
+                            rename(card.id, suggestion);
+                            setNaming(null);
+                          }}
+                        >
+                          {suggestion}
+                        </button>
+                      </li>
                     ))}
-                  </datalist>
+                  </ul>
                 ) : null}
               </div>
               <div className="set-actions">
