@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { BottomNav, type AppView } from "./components/BottomNav";
 import { DataTable } from "./components/DataTable";
 import { ExerciseSheet } from "./components/ExerciseSheet";
 import { Figure } from "./components/Figure";
@@ -20,6 +21,7 @@ import {
 } from "./plan";
 import { paintAll, type Paint } from "./paint";
 import { RestBar } from "./components/RestBar";
+import { Tracker } from "./components/Tracker";
 import { useTheme } from "./theme";
 
 const SPLIT: Array<{ id: string; day: DayKey; label: string; detail: string }> = [
@@ -35,10 +37,12 @@ function dayColor(colors: Record<DayKey, string>, day: DayId): string {
 }
 
 export function App() {
+  const [view, setView] = useState<AppView>("home");
   return (
     <>
       <RestBar />
-      <Page />
+      {view === "home" ? <Page /> : <Tracker />}
+      <BottomNav view={view} onChange={setView} />
     </>
   );
 }

@@ -67,7 +67,7 @@ a {
 .page {
   max-width: 760px;
   margin: 0 auto;
-  padding: calc(52px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));
+  padding: calc(52px + env(safe-area-inset-top)) 16px calc(64px + env(safe-area-inset-bottom));
 }
 
 .rest-bar {
@@ -163,6 +163,137 @@ a {
 .rest-reset {
   background: var(--fill);
   color: var(--text);
+}
+
+.bottom-nav {
+  position: fixed;
+  z-index: 18;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  box-sizing: border-box;
+  height: calc(48px + env(safe-area-inset-bottom));
+  padding: 0 max(8px, env(safe-area-inset-right)) env(safe-area-inset-bottom)
+    max(8px, env(safe-area-inset-left));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.bottom-nav button {
+  flex: 1;
+  appearance: none;
+  height: 48px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.bottom-nav button[aria-current="page"] {
+  color: var(--text);
+}
+
+.day-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.day-picker select {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  padding: 0 8px;
+}
+
+.tracker-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.tracker-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.tracker-table th,
+.tracker-table td {
+  padding: 6px 4px;
+  vertical-align: middle;
+  text-align: start;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tracker-table tr:last-child td {
+  border-bottom: none;
+}
+
+.tracker-table th {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--text-secondary);
+  background: var(--fill);
+}
+
+.tracker-table th:first-child,
+.tracker-table td:first-child {
+  width: 30%;
+}
+
+.tracker-table th {
+  white-space: nowrap;
+}
+
+.tracker-table select,
+.tracker-table input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 36px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  padding: 0 4px;
+}
+
+.tracker-table select {
+  font-size: 12px;
+}
+
+.tracker-table input {
+  font-size: 16px;
+}
+
+.tracker-table .prev {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  text-align: end;
+}
+
+.tracker-notice {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 h1 {
@@ -569,17 +700,17 @@ th.end {
     border-radius: 0;
   }
 
-  table,
-  tbody {
+  .table-scroll table,
+  .table-scroll tbody {
     display: block;
     width: 100%;
   }
 
-  thead {
+  .table-scroll thead {
     display: none;
   }
 
-  tr {
+  .table-scroll tr {
     display: block;
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -587,14 +718,14 @@ th.end {
     margin: 0 0 8px;
   }
 
-  tr:last-child td {
+  .table-scroll tr:last-child td {
     border-bottom: none;
   }
 
-  th,
-  td,
-  td.end,
-  th.end {
+  .table-scroll th,
+  .table-scroll td,
+  .table-scroll td.end,
+  .table-scroll th.end {
     display: block;
     width: auto;
     border: none;
@@ -603,7 +734,7 @@ th.end {
     white-space: normal;
   }
 
-  td::before {
+  .table-scroll td::before {
     content: attr(data-label);
     display: block;
     margin-top: 8px;
@@ -613,11 +744,11 @@ th.end {
     font-weight: 600;
   }
 
-  td:first-child::before {
+  .table-scroll td:first-child::before {
     content: none;
   }
 
-  td:first-child {
+  .table-scroll td:first-child {
     font-size: 16px;
     line-height: 22px;
   }

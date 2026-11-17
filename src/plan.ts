@@ -342,3 +342,44 @@ export const PULL_TABLE: DataTable = {
     ],
   ],
 };
+
+export const TRACKER_DAYS: Array<{ id: DayId; label: string }> = [
+  { id: "legs", label: "Legs" },
+  { id: "push", label: "Push" },
+  { id: "cardio", label: "Cardio + Core" },
+  { id: "pull", label: "Pull" },
+];
+
+export interface TrackerSlot {
+  id: string;
+  options: string[];
+}
+
+const TRACKER_TABLES: Record<DayId, DataTable[]> = {
+  legs: [LEGS_TABLE],
+  push: [PUSH_TABLE],
+  cardio: [CARDIO_TABLE, CORE_TABLE],
+  pull: [PULL_TABLE],
+};
+
+function exerciseNames(cell: Cell): string[] {
+  if (typeof cell === "string") return [];
+  return cell.flatMap((part) => (part.kind === "ex" ? [part.name] : []));
+}
+
+export function trackerSlots(day: DayId): TrackerSlot[] {
+  const slots: TrackerSlot[] = [];
+  for (const table of TRACKER_TABLES[day]) {
+    for (const row of table.rows) {
+      const primary = exerciseNames(row[0]);
+      if (primary.length === 0) continue;
+      const fallbacks = exerciseNames(row[row.length - 1]);
+      const options = [primary[0]];
+      for (const name of fallbacks) {
+        if (!options.includes(name)) options.push(name);
+      }
+      slots.push({ id: primary[0], options });
+    }
+  }
+  return slots;
+}

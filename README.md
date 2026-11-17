@@ -6,6 +6,8 @@ Muscle figures use path data from [MuscleMap](https://github.com/Jsplice/MuscleM
 
 There are no kilogram loads. The tables use rep ranges only. Day colours can be changed from the Colours panel and are saved in this browser.
 
+Home and Tracker share a bottom menu. Tracker logs weight and reps for the same exercises as each day. Only the last session is kept on this phone. Submit writes the filled rows and leaves empty ones as they were.
+
 A thin rest bar stays at the top of the screen. Pick 30s, 60s, 90s, 2m, or 3m, then Start. The time left is the end time saved on this phone, so a refresh or a restart keeps it. When it ends, the installed app posts a notification. If notifications are blocked, the bar shows Done and plays a short beep.
 
 ## Run locally
