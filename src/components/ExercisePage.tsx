@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CATALOGUE_EQUIPMENT,
   CATALOGUE_MUSCLES,
   EXERCISE_CATALOGUE,
   catalogueByName,
   exerciseImageUrl,
+  exerciseIsCardio,
   labelize,
   type CatalogueExercise,
 } from "../exercises";
@@ -73,6 +74,38 @@ export function ExercisePage() {
 
   const open = rows.find((row) => row.key === openKey) ?? null;
 
+  useEffect(() => {
+    const state = history.state as { exerciseDetail?: boolean } | null;
+    if (state?.exerciseDetail) history.replaceState(null, "");
+    const onPop = () => {
+      const next = history.state as { exerciseDetail?: boolean } | null;
+      if (!next?.exerciseDetail) {
+        setOpenKey(null);
+        setNotice("");
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  function openExercise(key: string) {
+    setOpenKey(key);
+    setNotice("");
+    const state = history.state as { exerciseDetail?: boolean } | null;
+    if (state?.exerciseDetail) history.replaceState({ exerciseDetail: true }, "");
+    else history.pushState({ exerciseDetail: true }, "");
+  }
+
+  function requestBack() {
+    const state = history.state as { exerciseDetail?: boolean } | null;
+    if (state?.exerciseDetail) {
+      history.back();
+      return;
+    }
+    setOpenKey(null);
+    setNotice("");
+  }
+
   function addOpenToDay() {
     if (!open) return;
     appendExerciseToDay(addDay, open.name);
@@ -83,7 +116,6 @@ export function ExercisePage() {
 
   return (
     <main className="page">
-      <h1>Exercise</h1>
       {open ? (
         <ExerciseDetail
           key={open.key}
@@ -93,13 +125,11 @@ export function ExercisePage() {
           days={days}
           onAddDay={setAddDay}
           onAdd={addOpenToDay}
-          onBack={() => {
-            setOpenKey(null);
-            setNotice("");
-          }}
+          onBack={requestBack}
         />
       ) : (
         <>
+          <h1>Exercise</h1>
           <label className="ex-search">
             <span className="sr-only">Search exercises</span>
             <input
@@ -159,7 +189,7 @@ export function ExercisePage() {
             <ul className="ex-list">
               {rows.map((row) => (
                 <li key={row.key}>
-                  <button type="button" onClick={() => setOpenKey(row.key)}>
+                  <button type="button" onClick={() => openExercise(row.key)}>
                     <span className="ex-list-name">{row.name}</span>
                     <span className="ex-list-meta">
                       {row.exercise
@@ -201,9 +231,10 @@ function ExerciseDetail({
   return (
     <article className="ex-detail">
       <button type="button" className="text-back" onClick={onBack}>
-        Back
+        ‹ Back
       </button>
       <h2>{row.name}</h2>
+      {exerciseIsCardio(row.name) ? <p className="heart-line">Heart & lungs</p> : null}
       {exercise ? (
         <>
           <p className="ex-detail-meta">

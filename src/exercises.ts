@@ -38,6 +38,16 @@ export function catalogueByName(name: string): CatalogueExercise | undefined {
   return BY_NAME.get(name.trim().toLowerCase());
 }
 
+/** Plan names kept because the catalogue has no matching movement. */
+const KNOWN_CARDIO = new Set(["easy steady state", "intervals"]);
+
+export function exerciseIsCardio(name: string): boolean {
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  if (KNOWN_CARDIO.has(trimmed.toLowerCase())) return true;
+  return catalogueByName(trimmed)?.category === "cardio";
+}
+
 export function labelize(value: string): string {
   return value
     .split(" ")
