@@ -397,17 +397,22 @@ function CustomDetail({
           setSaved(false);
         }}
       />
-      <button
-        type="button"
-        className="manage-save map-save"
-        onClick={() => {
-          saveCustomExercise({ name: item.name, muscles, cardio });
-          setSaved(true);
-          onCustomChange();
-        }}
-      >
-        Save
-      </button>
+      <div className="manage-actions editor-actions">
+        <button type="button" onClick={onBack}>
+          Close
+        </button>
+        <button
+          type="button"
+          className="manage-save"
+          onClick={() => {
+            saveCustomExercise({ name: item.name, muscles, cardio });
+            setSaved(true);
+            onCustomChange();
+          }}
+        >
+          Save
+        </button>
+      </div>
       {saved ? <p className="tracker-notice">Saved</p> : null}
       <button
         type="button"

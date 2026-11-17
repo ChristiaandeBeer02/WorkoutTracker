@@ -108,17 +108,14 @@ export function MapDialog({
         <h2 id="map-title">Link muscles</h2>
         <p>{dayName}</p>
         {names.map((name) => (
-          <MapOne key={name} name={name} onSaved={onSaved} />
+          <MapOne key={name} name={name} onSaved={onSaved} onClose={onClose} />
         ))}
-        <button type="button" className="text-back" onClick={onClose}>
-          Close
-        </button>
       </div>
     </>
   );
 }
 
-function MapOne({ name, onSaved }: { name: string; onSaved: () => void }) {
+function MapOne({ name, onSaved, onClose }: { name: string; onSaved: () => void; onClose: () => void }) {
   const [muscles, setMuscles] = useState<string[]>([]);
   const [cardio, setCardio] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -135,17 +132,22 @@ function MapOne({ name, onSaved }: { name: string; onSaved: () => void }) {
           setSaved(false);
         }}
       />
-      <button
-        type="button"
-        className="manage-save map-save"
-        onClick={() => {
-          if (!saveCustomExercise({ name, muscles, cardio })) return;
-          setSaved(true);
-          onSaved();
-        }}
-      >
-        Save
-      </button>
+      <div className="manage-actions editor-actions">
+        <button type="button" onClick={onClose}>
+          Close
+        </button>
+        <button
+          type="button"
+          className="manage-save"
+          onClick={() => {
+            if (!saveCustomExercise({ name, muscles, cardio })) return;
+            setSaved(true);
+            onSaved();
+          }}
+        >
+          Save
+        </button>
+      </div>
       {saved ? <p className="tracker-notice">Saved</p> : null}
     </section>
   );
