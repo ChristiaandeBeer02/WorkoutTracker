@@ -4,6 +4,7 @@ import { ImportDays } from "./components/ImportDays";
 import { ExercisePage } from "./components/ExercisePage";
 import { Figure } from "./components/Figure";
 import { RestBar } from "./components/RestBar";
+import { UpdateBanner } from "./components/UpdateBanner";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Tracker } from "./components/Tracker";
 import { linkWarning, unmappedOnDay } from "./customExercises";
@@ -46,6 +47,7 @@ export function App() {
   return (
     <>
       <RestBar />
+      <UpdateBanner />
       {view === "home" ? <Page refresh={dataRev} /> : view === "tracker" ? <Tracker /> : <ExercisePage key={dataRev} />}
       <BottomNav view={view} onChange={changeView} />
       {importCode != null ? (

@@ -26,6 +26,7 @@ import {
   DRAFT_SAVE_MS,
   loadDraftBook,
   saveDraftBook,
+  setDraftFlusher,
   visibleSetRows,
   withUpdatedCount,
   withUpdatedSet,
@@ -114,6 +115,8 @@ export function Tracker() {
     const timer = window.setTimeout(() => saveDraftBook(draftRef.current), DRAFT_SAVE_MS);
     return () => window.clearTimeout(timer);
   }, [draftBook]);
+
+  useEffect(() => setDraftFlusher(() => saveDraftBook(draftRef.current)), []);
 
   useEffect(() => {
     const flush = () => saveDraftBook(draftRef.current);

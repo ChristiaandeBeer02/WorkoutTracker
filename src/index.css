@@ -70,6 +70,67 @@ a {
   padding: calc(52px + env(safe-area-inset-top)) 16px calc(64px + env(safe-area-inset-bottom));
 }
 
+body.update-ready .page {
+  padding-top: calc(98px + env(safe-area-inset-top));
+}
+
+.update-banner {
+  position: fixed;
+  z-index: 24;
+  top: calc(42px + env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 736px;
+  height: 40px;
+  margin: 0 auto;
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.update-banner p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 18px;
+}
+
+.update-go,
+.update-dismiss {
+  appearance: none;
+  flex: none;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 28px;
+  cursor: pointer;
+}
+
+.update-go {
+  padding: 0 12px;
+  background: var(--text);
+  color: var(--on-primary);
+}
+
+.update-dismiss {
+  width: 28px;
+  padding: 0;
+  background: var(--fill);
+  color: var(--text);
+  font-size: 16px;
+}
+
 .rest-bar {
   position: fixed;
   z-index: 30;
