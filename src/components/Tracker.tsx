@@ -222,6 +222,16 @@ export function Tracker() {
     replaceCards([...cardsFor(day), freshCard()]);
   }
 
+  function moveCard(index: number, delta: -1 | 1) {
+    const current = cardsFor(day);
+    const target = index + delta;
+    if (target < 0 || target >= current.length) return;
+    const next = [...current];
+    const [card] = next.splice(index, 1);
+    next.splice(target, 0, card);
+    replaceCards(next);
+  }
+
   function removeWorkout(id: string) {
     const next = withoutCard(draftRef.current, day, id);
     draftRef.current = next;
@@ -319,7 +329,7 @@ export function Tracker() {
         </p>
       ) : null}
 
-      {cards.map((card) => {
+      {cards.map((card, index) => {
         const count = countFor(card);
         const rows = rowsFor(card.id, count);
         const previous = stats[card.name.trim()]?.sets ?? [];
@@ -327,6 +337,7 @@ export function Tracker() {
         const suggestions = naming === card.id ? suggestionsFor(card) : [];
         return (
           <section className="set-card" key={card.id} aria-label={label}>
+            <div className="set-card-main">
             <header className="set-card-head">
               <div className="ex-name">
                 <input
@@ -401,36 +412,55 @@ export function Tracker() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, index) => (
-                  <tr key={index}>
-                    <td className="set-num">{index + 1}</td>
+                {rows.map((row, setIndex) => (
+                  <tr key={setIndex}>
+                    <td className="set-num">{setIndex + 1}</td>
                     <td>
                       <input
-                        aria-label={`${label} set ${index + 1} weight`}
+                        aria-label={`${label} set ${setIndex + 1} weight`}
                         inputMode="decimal"
                         value={row.weight}
-                        onChange={(event) => updateSet(card.id, index, count, "weight", event.target.value)}
+                        onChange={(event) => updateSet(card.id, setIndex, count, "weight", event.target.value)}
                       />
                     </td>
                     <td>
                       <input
-                        aria-label={`${label} set ${index + 1} reps`}
+                        aria-label={`${label} set ${setIndex + 1} reps`}
                         inputMode="numeric"
                         value={row.reps}
                         onChange={(event) => {
                           const next = event.target.value;
                           const added = next.length > row.reps.length;
-                          updateSet(card.id, index, count, "reps", next);
+                          updateSet(card.id, setIndex, count, "reps", next);
                           if (added) startRestIfIdle();
                         }}
                       />
                     </td>
-                    <td className="prev">{displayStat(previous[index]?.weight)}</td>
-                    <td className="prev">{displayStat(previous[index]?.reps)}</td>
+                    <td className="prev">{displayStat(previous[setIndex]?.weight)}</td>
+                    <td className="prev">{displayStat(previous[setIndex]?.reps)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
+            <div className="reorder">
+              <button
+                type="button"
+                aria-label={`Move ${label} up`}
+                disabled={index === 0}
+                onClick={() => moveCard(index, -1)}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                aria-label={`Move ${label} down`}
+                disabled={index === cards.length - 1}
+                onClick={() => moveCard(index, 1)}
+              >
+                ↓
+              </button>
+            </div>
           </section>
         );
       })}
