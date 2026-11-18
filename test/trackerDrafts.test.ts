@@ -3,12 +3,14 @@ import test from "node:test";
 import {
   bookIsEmpty,
   emptyDraftBook,
+  flushDraftsNow,
   forgetAllDrafts,
   forgetDraftDay,
   loadDraftBook,
   parseDraftBook,
   saveDraftBook,
   serializeDraftBook,
+  setDraftFlusher,
   visibleSetRows,
   withUpdatedCount,
   withUpdatedSet,
@@ -97,4 +99,16 @@ test("storage round trip restores a draft and forgets it on submit or reset", ()
   forgetAllDrafts();
   assert.equal(loadDraftBook().sets.legs, undefined);
   assert.equal(serializeDraftBook(book).includes("row"), true);
+});
+
+test("an update can flush the latest typed sets before reload", () => {
+  installStorage();
+  const stop = setDraftFlusher(() =>
+    saveDraftBook(withUpdatedSet(emptyDraftBook(), "legs", "squat", 0, 3, "weight", "55")),
+  );
+  flushDraftsNow();
+  assert.equal(loadDraftBook().sets.legs.squat[0].weight, "55");
+  stop();
+  flushDraftsNow();
+  assert.equal(loadDraftBook().sets.legs.squat[0].weight, "55");
 });

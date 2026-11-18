@@ -96,6 +96,20 @@ export function loadDraftBook(): DraftBook {
   }
 }
 
+let flushDrafts: (() => void) | null = null;
+
+/** Tracker registers this so an update reload can save the latest typed sets. */
+export function setDraftFlusher(flush: () => void): () => void {
+  flushDrafts = flush;
+  return () => {
+    if (flushDrafts === flush) flushDrafts = null;
+  };
+}
+
+export function flushDraftsNow(): void {
+  flushDrafts?.();
+}
+
 export function saveDraftBook(book: DraftBook): void {
   try {
     if (bookIsEmpty(book)) localStorage.removeItem(DRAFTS_KEY);
