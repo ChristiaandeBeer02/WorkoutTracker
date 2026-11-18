@@ -38,12 +38,17 @@ export function RestBar() {
       setNow(Date.now());
       if (left <= 0) {
         const current = stateRef.current;
-        if (current.notified || current.status !== "running") return;
-        const finished: RestState = { ...current, status: "finished", notified: true };
-        stateRef.current = finished;
-        saveRestState(finished);
-        setState(finished);
-        void finishRestAlert();
+        if (current.status !== "running") return;
+        const ready: RestState = {
+          durationMs: current.durationMs,
+          endAt: null,
+          status: "idle",
+          notified: false,
+        };
+        stateRef.current = ready;
+        saveRestState(ready);
+        setState(ready);
+        if (!current.notified) void finishRestAlert();
         return;
       }
       timer = window.setTimeout(tick, Math.min(250, left));
@@ -106,10 +111,6 @@ export function RestBar() {
           <span className="rest-readout" role="timer" aria-live="off" aria-label={`${formatRemaining(left)} left`}>
             {formatRemaining(left)}
           </span>
-        ) : state.status === "finished" ? (
-          <span className="rest-readout rest-done" role="status">
-            Done
-          </span>
         ) : (
           <select
             aria-label="Rest length"
@@ -118,7 +119,7 @@ export function RestBar() {
           >
             {REST_PRESETS.map((preset) => (
               <option key={preset.ms} value={preset.ms}>
-                {preset.label}
+                {formatRemaining(preset.ms)}
               </option>
             ))}
           </select>

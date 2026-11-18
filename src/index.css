@@ -126,10 +126,6 @@ a {
   background-repeat: no-repeat;
 }
 
-.rest-done {
-  color: var(--cardio);
-}
-
 .rest-controls {
   display: flex;
   flex: none;

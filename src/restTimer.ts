@@ -1,16 +1,16 @@
 export const REST_PRESETS = [
-  { label: "30s", ms: 30_000 },
-  { label: "60s", ms: 60_000 },
-  { label: "90s", ms: 90_000 },
-  { label: "2m", ms: 120_000 },
-  { label: "3m", ms: 180_000 },
+  { ms: 30_000 },
+  { ms: 60_000 },
+  { ms: 90_000 },
+  { ms: 120_000 },
+  { ms: 180_000 },
 ] as const;
 
 export const DEFAULT_DURATION_MS = 90_000;
 
 const STORAGE_KEY = "workout-tracker-rest";
 
-export type RestStatus = "idle" | "running" | "finished";
+export type RestStatus = "idle" | "running";
 
 export interface RestState {
   durationMs: number;
@@ -37,10 +37,10 @@ export function remainingMs(state: RestState, now: number): number {
   return Math.max(0, state.endAt - now);
 }
 
-/** If the saved end time is already past, the timer is finished. No notification is implied. */
+/** A countdown that has already ended is ready to start again. No notification is implied. */
 export function reconcile(state: RestState, now: number): RestState {
   if (state.status === "running" && (state.endAt == null || state.endAt <= now)) {
-    return { ...state, status: "finished" };
+    return { ...state, status: "idle", endAt: null, notified: false };
   }
   return state;
 }
@@ -60,8 +60,7 @@ export function parseRestState(raw: string | null, now: number): RestState {
       typeof parsed.durationMs === "number" && isPreset(parsed.durationMs)
         ? parsed.durationMs
         : DEFAULT_DURATION_MS;
-    const status: RestStatus =
-      parsed.status === "running" || parsed.status === "finished" ? parsed.status : "idle";
+    const status: RestStatus = parsed.status === "running" ? "running" : "idle";
     const endAt = typeof parsed.endAt === "number" ? parsed.endAt : null;
     return reconcile(
       {
