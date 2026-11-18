@@ -11,6 +11,7 @@ import { useEffect, useRef } from "react";
 
 interface Marker {
   exerciseDetail?: boolean;
+  trackerDetail?: boolean;
   workoutModal?: number;
 }
 
@@ -25,7 +26,10 @@ let listening = false;
 function readMarker(): Marker {
   const state = history.state as Marker | null;
   if (!state || typeof state !== "object") return {};
-  return state.exerciseDetail ? { exerciseDetail: true } : {};
+  const next: Marker = {};
+  if (state.exerciseDetail) next.exerciseDetail = true;
+  if (state.trackerDetail) next.trackerDetail = true;
+  return next;
 }
 
 function ensureListener() {

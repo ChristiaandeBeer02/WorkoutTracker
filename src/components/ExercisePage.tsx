@@ -25,11 +25,24 @@ import { appendExerciseToDay, cardsForDay, loadTrackerDay } from "../trackerStor
 
 type DayFilter = string;
 
-interface Row {
+export interface ExerciseDetailRow {
   key: string;
   name: string;
   exercise: CatalogueExercise | null;
   custom: CustomExercise | null;
+}
+
+export function detailForName(name: string): ExerciseDetailRow | null {
+  const cleaned = name.trim().replace(/\s+/g, " ");
+  if (!cleaned) return null;
+  const exercise = catalogueByName(cleaned) ?? null;
+  const custom = exercise ? null : (customByName(cleaned) ?? null);
+  return {
+    key: exercise?.id ?? `custom:${normaliseExerciseName(cleaned)}`,
+    name: exercise?.name ?? custom?.name ?? cleaned,
+    exercise,
+    custom,
+  };
 }
 
 function muscleText(exercise: CatalogueExercise, kind: "primaryMuscles" | "secondaryMuscles"): string {
@@ -58,19 +71,19 @@ export function ExercisePage() {
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const customRows: Row[] = loadCustomExercises().map((item) => ({
+    const customRows: ExerciseDetailRow[] = loadCustomExercises().map((item) => ({
       key: `custom:${normaliseExerciseName(item.name)}`,
       name: item.name,
       exercise: null,
       custom: item,
     }));
-    const catalogueRows: Row[] = EXERCISE_CATALOGUE.map((exercise) => ({
+    const catalogueRows: ExerciseDetailRow[] = EXERCISE_CATALOGUE.map((exercise) => ({
       key: exercise.id,
       name: exercise.name,
       exercise,
       custom: null,
     }));
-    const source: Row[] =
+    const source: ExerciseDetailRow[] =
       list === "custom"
         ? customRows
         : day === "all"
@@ -249,7 +262,7 @@ export function ExercisePage() {
   );
 }
 
-function ExerciseDetail({
+export function ExerciseDetail({
   row,
   addDay,
   notice,
@@ -259,7 +272,7 @@ function ExerciseDetail({
   onBack,
   onCustomChange,
 }: {
-  row: Row;
+  row: ExerciseDetailRow;
   addDay: string;
   notice: string;
   days: Array<{ id: string; name: string }>;
