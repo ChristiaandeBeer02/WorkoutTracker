@@ -239,11 +239,46 @@ a {
 }
 
 .set-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px;
   margin: 0 0 12px;
   background: var(--bg);
+}
+
+.set-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.reorder {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reorder button {
+  appearance: none;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: var(--fill);
+  color: var(--text);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.reorder button:disabled {
+  opacity: 0.38;
+  cursor: default;
 }
 
 .set-card:focus-within {

@@ -11,7 +11,7 @@ import { notifyDaysChanged } from "./dayShare";
 import { loadDays } from "./days";
 import { MapDialog } from "./components/MuscleEditor";
 import { coveredAcrossDays, dayHasCardio, labelize, missingAcrossDays, musclesForDay, paintDays } from "./muscles";
-import { loadDayLog, type DayLog, type SetStat } from "./trackerStore";
+import { cardsForDay, loadDayLog, type DayLog, type SetStat, type StatBook } from "./trackerStore";
 import type { Paint } from "./paint";
 import { useTheme } from "./theme";
 
@@ -79,6 +79,7 @@ function Page({ refresh }: { refresh: number }) {
   const cards = days.map((day) => ({
     day,
     log: loadDayLog(day.id),
+    order: cardsForDay(day.id).map((item) => item.name.trim()).filter((name) => name.length > 0),
     muscles: musclesForDay(day),
     cardio: dayHasCardio(day),
     unmapped: unmappedOnDay(day),
@@ -167,6 +168,7 @@ function Page({ refresh }: { refresh: number }) {
               muscles={card.muscles.names}
                 cardio={card.cardio}
                 log={card.log}
+                order={card.order}
                 paint={paintDays([card.day])}
                 warning={card.unmapped.length > 0 ? linkWarning(card.unmapped.length, card.day.name) : ""}
                 onWarn={() => setMapDayId(card.day.id)}
@@ -196,12 +198,23 @@ function setLine(sets: SetStat[]): string {
     .join(", ");
 }
 
+function sessionEntries(book: StatBook, order: readonly string[]) {
+  const rank = new Map(order.map((name, index) => [name.toLowerCase(), index]));
+  return Object.entries(book)
+    .filter(([, record]) => filledSets(record.sets).length > 0)
+    .sort(
+      (a, b) =>
+        (rank.get(a[0].toLowerCase()) ?? order.length) - (rank.get(b[0].toLowerCase()) ?? order.length),
+    );
+}
+
 function LastCard({
   name,
   color,
   muscles,
   cardio,
   log,
+  order,
   paint,
   warning,
   onWarn,
@@ -211,11 +224,12 @@ function LastCard({
   muscles: string[];
   cardio: boolean;
   log: DayLog;
+  order: string[];
   paint: Paint;
   warning: string;
   onWarn: () => void;
 }) {
-  const entries = Object.entries(log.book).filter(([, record]) => filledSets(record.sets).length > 0);
+  const entries = sessionEntries(log.book, order);
   return (
     <article className="last-card" style={{ borderLeftColor: color }}>
       <h3>{name}</h3>
