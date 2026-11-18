@@ -340,7 +340,6 @@ export function Tracker() {
         const suggestions = naming === card.id ? suggestionsFor(card) : [];
         return (
           <section className="set-card" key={card.id} aria-label={label}>
-            <div className="set-card-main">
             <header className="set-card-head">
               <div className="ex-name">
                 <input
@@ -391,6 +390,24 @@ export function Tracker() {
                 </button>
                 <button type="button" onClick={() => changeCount(card, -1)} disabled={count <= 1}>
                   - set
+                </button>
+              </div>
+              <div className="reorder">
+                <button
+                  type="button"
+                  aria-label={`Move ${label} up`}
+                  disabled={index === 0}
+                  onClick={() => moveCard(index, -1)}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Move ${label} down`}
+                  disabled={index === cards.length - 1}
+                  onClick={() => moveCard(index, 1)}
+                >
+                  ↓
                 </button>
               </div>
             </header>
@@ -445,25 +462,6 @@ export function Tracker() {
                 ))}
               </tbody>
             </table>
-            </div>
-            <div className="reorder">
-              <button
-                type="button"
-                aria-label={`Move ${label} up`}
-                disabled={index === 0}
-                onClick={() => moveCard(index, -1)}
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                aria-label={`Move ${label} down`}
-                disabled={index === cards.length - 1}
-                onClick={() => moveCard(index, 1)}
-              >
-                ↓
-              </button>
-            </div>
           </section>
         );
       })}

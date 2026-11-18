@@ -300,19 +300,11 @@ body.update-ready .page {
 }
 
 .set-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px;
   margin: 0 0 12px;
   background: var(--bg);
-}
-
-.set-card-main {
-  flex: 1;
-  min-width: 0;
 }
 
 .reorder {
