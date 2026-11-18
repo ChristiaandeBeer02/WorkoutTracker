@@ -178,6 +178,7 @@ function Page({ refresh }: { refresh: number }) {
           ))}
         </div>
       </section>
+      <p className="build-label">v{__APP_VERSION__}</p>
       {mapDay && mapDay.unmapped.length > 0 ? (
         <MapDialog
           dayName={mapDay.day.name}

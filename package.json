@@ -12,7 +12,8 @@
   "dependencies": {
     "qrcode-generator": "^1.4.4",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "workbox-window": "^7.4.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",
