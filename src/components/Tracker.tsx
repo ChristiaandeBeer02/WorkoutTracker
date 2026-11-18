@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { useDismissOnBack } from "../closeOnBack";
+import { modalDepth, retreat, useDismissOnBack } from "../closeOnBack";
 import { DAYS_CHANGED_EVENT } from "../dayShare";
 import { dayById, isPlanDay, loadDays, nextDay, type TrackerDay } from "../days";
 import { loadCustomExercises } from "../customExercises";
 import { catalogueNameMatches } from "../exercises";
+import { detailForName, ExerciseDetail } from "./ExercisePage";
 import { ManageDays } from "./ManageDays";
 import { startRestIfIdle } from "../restBridge";
 import { trackerSlots } from "../plan";
 import {
+  appendExerciseToDay,
   applySession,
   displayStat,
   loadDayWorkouts,
@@ -65,7 +67,48 @@ export function Tracker() {
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [naming, setNaming] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
+  const [detailName, setDetailName] = useState<string | null>(null);
+  const [detailNotice, setDetailNotice] = useState("");
+  const detailRow = detailName ? detailForName(detailName) : null;
   useDismissOnBack(confirmRemove != null, () => setConfirmRemove(null));
+
+  useEffect(() => {
+    const state = history.state as { trackerDetail?: boolean } | null;
+    if (state?.trackerDetail) history.replaceState(null, "");
+    const onPop = () => {
+      const next = history.state as { trackerDetail?: boolean } | null;
+      if (!next?.trackerDetail) {
+        setDetailName(null);
+        setDetailNotice("");
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      const latest = history.state as { trackerDetail?: boolean } | null;
+      if (latest?.trackerDetail) history.back();
+    };
+  }, []);
+
+  function openDetail(name: string) {
+    const row = detailForName(name);
+    if (!row) return;
+    setDetailName(row.name);
+    setDetailNotice("");
+    const state = history.state as { trackerDetail?: boolean } | null;
+    if (state?.trackerDetail) history.replaceState({ trackerDetail: true }, "");
+    else history.pushState({ trackerDetail: true }, "");
+  }
+
+  function closeDetail() {
+    const state = history.state as { trackerDetail?: boolean } | null;
+    if (state?.trackerDetail || modalDepth() > 0) {
+      retreat(state?.trackerDetail ? 1 : 0);
+      return;
+    }
+    setDetailName(null);
+    setDetailNotice("");
+  }
 
   useEffect(() => {
     const timer = window.setTimeout(() => saveDraftBook(draftRef.current), DRAFT_SAVE_MS);
@@ -218,6 +261,38 @@ export function Tracker() {
   }
 
   const cards = cardsFor(day);
+  const trackerDays = days.map((item) => ({ id: item.id, name: item.name }));
+
+  if (detailRow) {
+    return (
+      <main className="page">
+        <ExerciseDetail
+          key={detailRow.key}
+          row={detailRow}
+          addDay={day}
+          notice={detailNotice}
+          days={trackerDays}
+          onAddDay={(next) => {
+            setDay(next);
+            saveTrackerDay(next);
+            setStats(loadStats(next));
+          }}
+          onAdd={() => {
+            appendExerciseToDay(day, detailRow.name);
+            setLists((current) => {
+              const next = { ...current };
+              delete next[day];
+              return next;
+            });
+            const label = days.find((item) => item.id === day)?.name ?? "that day";
+            setDetailNotice(`Added to ${label}`);
+          }}
+          onBack={closeDetail}
+          onCustomChange={() => setDetailNotice("")}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="page">
@@ -267,6 +342,15 @@ export function Tracker() {
                     setNaming(card.id);
                   }}
                 />
+                {card.name.trim() ? (
+                  <button
+                    type="button"
+                    className="view-details"
+                    onClick={() => openDetail(card.name)}
+                  >
+                    View details
+                  </button>
+                ) : null}
                 {suggestions.length > 0 ? (
                   <ul className="ex-suggest" role="listbox">
                     {suggestions.map((suggestion) => (
