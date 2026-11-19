@@ -23,9 +23,7 @@ import { loadDays } from "../days";
 import { Figure } from "./Figure";
 import { MuscleEditor } from "./MuscleEditor";
 import { nameTrainsCardio, paintExercise, paintWorked } from "../muscles";
-import { appendExerciseToDay, cardsForDay, loadTrackerDay } from "../trackerStore";
-
-type DayFilter = string;
+import { appendExerciseToDay, loadTrackerDay } from "../trackerStore";
 
 export interface ExerciseDetailRow {
   key: string;
@@ -61,9 +59,9 @@ function matchesEquipment(exercise: CatalogueExercise | null, equipment: string)
 
 export function ExercisePage() {
   const [query, setQuery] = useState("");
-  const [muscle, setMuscle] = useState("all");
+  const [mainMuscle, setMainMuscle] = useState("all");
+  const [secondaryMuscle, setSecondaryMuscle] = useState("all");
   const [equipment, setEquipment] = useState("all");
-  const [day, setDay] = useState<DayFilter>("all");
   const [list, setList] = useState<"all" | "custom">("all");
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [addDay, setAddDay] = useState(loadTrackerDay);
@@ -85,20 +83,7 @@ export function ExercisePage() {
       exercise,
       custom: null,
     }));
-    const source: ExerciseDetailRow[] =
-      list === "custom"
-        ? customRows
-        : day === "all"
-          ? [...customRows, ...catalogueRows]
-          : cardsForDay(day).map((card, index) => {
-              const name = card.name.trim() || "Untitled";
-              return {
-                key: `${day}:${card.id}:${index}`,
-                name,
-                exercise: catalogueByName(name) ?? null,
-                custom: customByName(name) ?? null,
-              };
-            });
+    const source: ExerciseDetailRow[] = list === "custom" ? customRows : [...customRows, ...catalogueRows];
 
     const order = needle
       ? new Map(searchByName(needle, { universe: source.map((row) => row.name) }).map((name, index) => [searchKey(name), index]))
@@ -107,10 +92,12 @@ export function ExercisePage() {
     return source
       .filter((row) => {
         if (order && !order.has(searchKey(row.name))) return false;
-        if (muscle !== "all") {
+        if (mainMuscle !== "all") {
           const worked = row.exercise?.primaryMuscles ?? row.custom?.muscles ?? [];
-          const also = row.exercise?.secondaryMuscles ?? [];
-          if (!worked.includes(muscle) && !also.includes(muscle)) return false;
+          if (!worked.includes(mainMuscle)) return false;
+        }
+        if (secondaryMuscle !== "all") {
+          if (!row.exercise?.secondaryMuscles.includes(secondaryMuscle)) return false;
         }
         if (row.custom) return equipment === "all";
         if (!matchesEquipment(row.exercise, equipment)) return false;
@@ -120,7 +107,7 @@ export function ExercisePage() {
         if (!order) return 0;
         return (order.get(searchKey(a.name)) ?? 0) - (order.get(searchKey(b.name)) ?? 0);
       });
-  }, [query, muscle, equipment, day, list, revision]);
+  }, [query, mainMuscle, secondaryMuscle, equipment, list, revision]);
 
   const open = rows.find((row) => row.key === openKey) ?? null;
 
@@ -211,8 +198,8 @@ export function ExercisePage() {
               </select>
             </label>
             <label>
-              Muscle
-              <select value={muscle} onChange={(event) => setMuscle(event.target.value)}>
+              Main muscle
+              <select value={mainMuscle} onChange={(event) => setMainMuscle(event.target.value)}>
                 <option value="all">All</option>
                 {CATALOGUE_MUSCLES.map((item) => (
                   <option key={item} value={item}>
@@ -233,18 +220,12 @@ export function ExercisePage() {
               </select>
             </label>
             <label>
-              Day
-              <select
-                value={day}
-                onChange={(event) => {
-                  setDay(event.target.value as DayFilter);
-                  setOpenKey(null);
-                }}
-              >
+              Secondary muscle
+              <select value={secondaryMuscle} onChange={(event) => setSecondaryMuscle(event.target.value)}>
                 <option value="all">All</option>
-                {days.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
+                {CATALOGUE_MUSCLES.map((item) => (
+                  <option key={item} value={item}>
+                    {labelize(item)}
                   </option>
                 ))}
               </select>
@@ -266,7 +247,7 @@ export function ExercisePage() {
                         ? "Custom"
                         : row.exercise
                           ? row.exercise.primaryMuscles.map(labelize).join(", ") || labelize(row.exercise.category)
-                          : "On this day"}
+                          : ""}
                     </span>
                   </button>
                 </li>
@@ -401,7 +382,7 @@ function CatalogueDetail({
             ))}
           </select>
         </label>
-        <button type="button" onClick={onAdd} disabled={row.name === "Untitled"}>
+        <button type="button" onClick={onAdd}>
           Add
         </button>
       </div>
