@@ -1,4 +1,4 @@
-import raw from "./data/exercises.json";
+import raw from "./data/exercises.json" with { type: "json" };
 
 /**
  * Exercise catalogue from free-exercise-db (https://github.com/yuhonas/free-exercise-db),
@@ -77,20 +77,3 @@ export const CATALOGUE_MUSCLES = uniqueSorted(
 );
 
 export const CATALOGUE_EQUIPMENT = uniqueSorted(EXERCISE_CATALOGUE.map((exercise) => exercise.equipment));
-
-const SUGGESTION_CAP = 20;
-
-/** Database names that match the query, after earlier suggestion groups. */
-export function catalogueNameMatches(query: string, already: ReadonlySet<string>): string[] {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return [];
-  const matches: string[] = [];
-  for (const exercise of EXERCISE_CATALOGUE) {
-    const name = exercise.name.trim();
-    const key = name.toLowerCase();
-    if (key === needle || !key.includes(needle) || already.has(key)) continue;
-    matches.push(name);
-    if (matches.length >= SUGGESTION_CAP) break;
-  }
-  return matches;
-}

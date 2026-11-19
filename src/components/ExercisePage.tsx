@@ -18,6 +18,7 @@ import {
   type CustomExercise,
 } from "../customExercises";
 import { normaliseExerciseName } from "../exercises";
+import { searchByName, searchKey } from "../exerciseSearch";
 import { loadDays } from "../days";
 import { Figure } from "./Figure";
 import { MuscleEditor } from "./MuscleEditor";
@@ -99,17 +100,26 @@ export function ExercisePage() {
               };
             });
 
-    return source.filter((row) => {
-      if (needle && !row.name.toLowerCase().includes(needle)) return false;
-      if (muscle !== "all") {
-        const worked = row.exercise?.primaryMuscles ?? row.custom?.muscles ?? [];
-        const also = row.exercise?.secondaryMuscles ?? [];
-        if (!worked.includes(muscle) && !also.includes(muscle)) return false;
-      }
-      if (row.custom) return equipment === "all";
-      if (!matchesEquipment(row.exercise, equipment)) return false;
-      return true;
-    });
+    const order = needle
+      ? new Map(searchByName(needle, { universe: source.map((row) => row.name) }).map((name, index) => [searchKey(name), index]))
+      : null;
+
+    return source
+      .filter((row) => {
+        if (order && !order.has(searchKey(row.name))) return false;
+        if (muscle !== "all") {
+          const worked = row.exercise?.primaryMuscles ?? row.custom?.muscles ?? [];
+          const also = row.exercise?.secondaryMuscles ?? [];
+          if (!worked.includes(muscle) && !also.includes(muscle)) return false;
+        }
+        if (row.custom) return equipment === "all";
+        if (!matchesEquipment(row.exercise, equipment)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (!order) return 0;
+        return (order.get(searchKey(a.name)) ?? 0) - (order.get(searchKey(b.name)) ?? 0);
+      });
   }, [query, muscle, equipment, day, list, revision]);
 
   const open = rows.find((row) => row.key === openKey) ?? null;
