@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { modalDepth, retreat, useDismissOnBack } from "../closeOnBack";
 import { DAYS_CHANGED_EVENT } from "../dayShare";
 import { dayById, isPlanDay, loadDays, nextDay, type TrackerDay } from "../days";
-import { loadCustomExercises } from "../customExercises";
-import { catalogueNameMatches } from "../exercises";
+import { searchByName } from "../exerciseSearch";
 import { detailForName, ExerciseDetail } from "./ExercisePage";
 import { ManageDays } from "./ManageDays";
 import { startRestIfIdle } from "../restBridge";
@@ -202,23 +201,12 @@ export function Tracker() {
   }
 
   function suggestionsFor(card: WorkoutCard): string[] {
-    const query = card.name.trim().toLowerCase();
+    const query = card.name.trim();
     if (!query) return [];
-    const seen = new Set<string>();
-    const matches: string[] = [];
-    const consider = (raw: string) => {
-      const name = raw.trim();
-      if (!name) return;
-      const key = name.toLowerCase();
-      if (seen.has(key) || key === query || !key.includes(query)) return;
-      seen.add(key);
-      matches.push(name);
-    };
-    for (const option of card.options) consider(option);
-    for (const name of Object.keys(stats)) consider(name);
-    for (const item of loadCustomExercises()) consider(item.name);
-    for (const name of catalogueNameMatches(query, seen)) matches.push(name);
-    return matches;
+    const typed = query.toLowerCase();
+    return searchByName(query, { extraNames: [...card.options, ...Object.keys(stats)] })
+      .filter((name) => name.toLowerCase() !== typed)
+      .slice(0, 20);
   }
 
   function addWorkout() {

@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import type { MuscleGroup } from "../anatomy";
 import { CloseOnBack } from "../closeOnBack";
 import { saveCustomExercise } from "../customExercises";
-import { EXERCISE_CATALOGUE, catalogueByName, labelize } from "../exercises";
+import { catalogueByName, labelize, type CatalogueExercise } from "../exercises";
+import { searchByName } from "../exerciseSearch";
 import { CATALOGUE_MUSCLE_NAMES, DB_MUSCLE_REGIONS, paintWorked } from "../muscles";
 import { Figure } from "./Figure";
 
@@ -25,9 +26,14 @@ export function MuscleEditor({
   const [sameAs, setSameAs] = useState("");
   const selected = new Set(muscles);
   const matches = useMemo(() => {
-    const needle = sameAs.trim().toLowerCase();
+    const needle = sameAs.trim();
     if (!needle) return [];
-    return EXERCISE_CATALOGUE.filter((exercise) => exercise.name.toLowerCase().includes(needle)).slice(0, 6);
+    const found: CatalogueExercise[] = [];
+    for (const name of searchByName(needle, { customNames: [], limit: 6 })) {
+      const exercise = catalogueByName(name);
+      if (exercise) found.push(exercise);
+    }
+    return found;
   }, [sameAs]);
 
   function toggleMuscle(name: string) {
