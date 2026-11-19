@@ -1316,6 +1316,49 @@ th.end {
   border-color: var(--text);
 }
 
+.muscle-chips button[data-role="secondary"] {
+  background: color-mix(in srgb, var(--accent) 42%, var(--bg));
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--border));
+}
+
+.muscle-cycle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.muscle-cycle-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text);
+  font-weight: 650;
+}
+
+.muscle-cycle-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  flex: none;
+}
+
+.muscle-cycle-swatch.is-main {
+  background: var(--text);
+  border-color: var(--text);
+}
+
+.muscle-cycle-swatch.is-secondary {
+  background: color-mix(in srgb, var(--accent) 42%, var(--bg));
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--border));
+}
+
 .same-as {
   display: grid;
   gap: 4px;

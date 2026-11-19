@@ -1,5 +1,6 @@
 import type { TrackerDay } from "./days";
 import { catalogueByName, normaliseExerciseName } from "./exercises";
+import { CATALOGUE_MUSCLE_NAMES } from "./muscles";
 import { cardsForDay } from "./trackerStore";
 
 const CUSTOM_KEY = "workout-tracker-custom-exercises";
@@ -13,12 +14,44 @@ function notifyCustomChanged(): void {
 
 export interface CustomExercise {
   name: string;
+  /** Main muscles, in catalogue order. */
   muscles: string[];
+  /** Lighter muscles, in catalogue order. Never overlaps `muscles`. */
+  secondary: string[];
   cardio: boolean;
 }
 
 function displayName(name: string): string {
   return name.trim().replace(/\s+/g, " ");
+}
+
+function stringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+/** Catalogue names stay in `CATALOGUE_MUSCLE_NAMES` order. Other strings are kept after them. */
+function orderedMuscles(names: readonly string[], skip: ReadonlySet<string>): string[] {
+  const known = new Set<string>();
+  const extra: string[] = [];
+  for (const name of names) {
+    const cleaned = name.trim();
+    if (!cleaned) continue;
+    const key = cleaned.toLowerCase();
+    if (skip.has(key)) continue;
+    if ((CATALOGUE_MUSCLE_NAMES as readonly string[]).includes(key)) {
+      known.add(key);
+      continue;
+    }
+    if (!extra.some((item) => item.toLowerCase() === key)) extra.push(cleaned);
+  }
+  return [...CATALOGUE_MUSCLE_NAMES.filter((name) => known.has(name)), ...extra];
+}
+
+function splitMuscles(main: readonly string[], secondary: readonly string[]): { muscles: string[]; secondary: string[] } {
+  const muscles = orderedMuscles(main, new Set());
+  const taken = new Set(muscles.map((name) => name.toLowerCase()));
+  return { muscles, secondary: orderedMuscles(secondary, taken) };
 }
 
 function readAll(): Record<string, CustomExercise> {
@@ -29,10 +62,11 @@ function readAll(): Record<string, CustomExercise> {
     const out: Record<string, CustomExercise> = {};
     for (const [key, value] of Object.entries(parsed)) {
       if (!value || typeof value.name !== "string") continue;
-      const muscles = Array.isArray(value.muscles) ? value.muscles.filter((item) => typeof item === "string") : [];
+      const split = splitMuscles(stringList(value.muscles), stringList(value.secondary));
       out[normaliseExerciseName(key)] = {
         name: displayName(value.name),
-        muscles,
+        muscles: split.muscles,
+        secondary: split.secondary,
         cardio: value.cardio === true,
       };
     }
@@ -59,9 +93,11 @@ export function saveCustomExercise(exercise: CustomExercise): boolean {
   const name = displayName(exercise.name);
   if (!name || catalogueByName(name)) return false;
   const book = readAll();
+  const split = splitMuscles(exercise.muscles, exercise.secondary ?? []);
   book[normaliseExerciseName(name)] = {
     name,
-    muscles: [...new Set(exercise.muscles)],
+    muscles: split.muscles,
+    secondary: split.secondary,
     cardio: exercise.cardio,
   };
   writeAll(book);

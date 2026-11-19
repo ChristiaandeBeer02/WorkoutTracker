@@ -1,6 +1,6 @@
 import type { MuscleGroup } from "./anatomy";
 import type { TrackerDay } from "./days";
-import { customByName } from "./customExercises";
+import { customByName, type CustomExercise } from "./customExercises";
 import { catalogueByName, exerciseIsCardio, labelize, type CatalogueExercise } from "./exercises";
 export { labelize };
 import { OPACITY } from "./colors";
@@ -50,13 +50,18 @@ function regionsFor(names: readonly string[]): MuscleGroup[] {
   return groups;
 }
 
-export function musclesForExercise(exercise: CatalogueExercise | null | undefined): DayMuscles {
+function dayMuscles(primaryNames: readonly string[], secondaryNamesIn: readonly string[]): DayMuscles {
+  const primary = regionsFor(primaryNames);
+  const primaryKeys = new Set(primaryNames.map((name) => name.trim().toLowerCase()));
+  const secondaryNames = secondaryNamesIn.filter((name) => !primaryKeys.has(name.trim().toLowerCase()));
+  const secondary = regionsFor(secondaryNames).filter((group) => !primary.includes(group));
+  return { primary, secondary, names: [...primaryNames], secondaryNames };
+}
+
+export function musclesForExercise(exercise: CatalogueExercise | CustomExercise | null | undefined): DayMuscles {
   if (!exercise) return { primary: [], secondary: [], names: [], secondaryNames: [] };
-  const primary = regionsFor(exercise.primaryMuscles);
-  const secondary = regionsFor(exercise.secondaryMuscles).filter((group) => !primary.includes(group));
-  const primaryKeys = new Set(exercise.primaryMuscles.map((name) => name.trim().toLowerCase()));
-  const secondaryNames = exercise.secondaryMuscles.filter((name) => !primaryKeys.has(name.trim().toLowerCase()));
-  return { primary, secondary, names: exercise.primaryMuscles, secondaryNames };
+  if ("primaryMuscles" in exercise) return dayMuscles(exercise.primaryMuscles, exercise.secondaryMuscles);
+  return dayMuscles(exercise.muscles, exercise.secondary ?? []);
 }
 
 /** Union of the catalogue muscles for the exercises currently on this day. Unknown names add nothing. */
@@ -142,12 +147,20 @@ export function paintWorked(names: readonly string[], color = "var(--accent)"): 
   return paintAll(regionsFor(names), color, OPACITY.primary);
 }
 
-export function paintExercise(exercise: CatalogueExercise | null | undefined): Paint {
-  const muscles = musclesForExercise(exercise);
+function paintDayMuscles(muscles: DayMuscles, color: string): Paint {
   return {
-    ...paintAll(muscles.secondary, "var(--accent)", OPACITY.secondary),
-    ...paintAll(muscles.primary, "var(--accent)", OPACITY.primary),
+    ...paintAll(muscles.secondary, color, OPACITY.secondary),
+    ...paintAll(muscles.primary, color, OPACITY.primary),
   };
+}
+
+/** Main at primary opacity, secondary at the lighter opacity. A muscle in both lists is main. */
+export function paintCustom(main: readonly string[], secondary: readonly string[], color = "var(--accent)"): Paint {
+  return paintDayMuscles(dayMuscles(main, secondary), color);
+}
+
+export function paintExercise(exercise: CatalogueExercise | null | undefined): Paint {
+  return paintDayMuscles(musclesForExercise(exercise), "var(--accent)");
 }
 
 function workedForName(name: string): { primary: string[]; secondary: string[] } | null {
@@ -155,7 +168,7 @@ function workedForName(name: string): { primary: string[]; secondary: string[] }
   if (catalogue) return { primary: catalogue.primaryMuscles, secondary: catalogue.secondaryMuscles };
   const custom = customByName(name);
   if (!custom) return null;
-  return { primary: custom.muscles, secondary: [] };
+  return { primary: custom.muscles, secondary: custom.secondary ?? [] };
 }
 
 export function nameTrainsCardio(name: string): boolean {

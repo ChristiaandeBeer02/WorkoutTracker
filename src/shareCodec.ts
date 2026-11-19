@@ -2,10 +2,11 @@ import { EXERCISE_CATALOGUE, normaliseExerciseName } from "./exercises";
 
 /**
  * Share-code version. Codes from a higher version are refused.
+ * Version 1 codes still import: every custom muscle is main, and secondary is empty.
  * Bump this if the catalogue order or the binary layout changes.
  * Appending exercises to the catalogue does not need a bump.
  */
-export const SHARE_VERSION = 1;
+export const SHARE_VERSION = 2;
 
 const PREFIX = `${SHARE_VERSION}.`;
 
@@ -14,7 +15,7 @@ export const BAD_CODE_MESSAGE = "That code doesn't look like a workout share.";
 export const TOO_BIG_MESSAGE = "That plan is too big to share.";
 export const NAME_TOO_LONG_MESSAGE = "One of the names is too long to share.";
 
-/** Bit order is fixed for version 1. Heart & lungs is the next bit. */
+/** Bit order is fixed. Heart & lungs is the next bit on the main mask. Version 2 adds a second mask for secondary muscles. */
 export const SHARE_MUSCLE_BITS = [
   "abdominals",
   "abductors",
@@ -47,6 +48,7 @@ EXERCISE_CATALOGUE.forEach((exercise, index) => {
 
 export interface SharedCustom {
   muscles: string[];
+  secondary: string[];
   cardio: boolean;
 }
 
@@ -115,7 +117,7 @@ export async function decodeShareCode(input: string): Promise<SharedDay[]> {
   if (!split) throw new ShareError(BAD_CODE_MESSAGE);
   const version = Number(split[1]);
   if (!Number.isInteger(version) || version < 1) throw new ShareError(BAD_CODE_MESSAGE);
-  if (version !== SHARE_VERSION) throw new ShareError(NEWER_VERSION_MESSAGE);
+  if (version > SHARE_VERSION) throw new ShareError(NEWER_VERSION_MESSAGE);
   let inflated: Uint8Array;
   try {
     inflated = await inflateRaw(base64UrlToBytes(split[2]));
@@ -123,7 +125,7 @@ export async function decodeShareCode(input: string): Promise<SharedDay[]> {
     if (error instanceof ShareError) throw error;
     throw new ShareError(BAD_CODE_MESSAGE);
   }
-  return unpackDays(inflated);
+  return unpackDays(inflated, version);
 }
 
 function packDays(days: SharedDay[]): Uint8Array {
@@ -154,18 +156,21 @@ function packDays(days: SharedDay[]): Uint8Array {
       }
       const customName = cleanName(exercise.name);
       if (!customName) throw new ShareError(BAD_CODE_MESSAGE);
+      const split = splitSharedMuscles(exercise.custom);
       out.u8(0x80 | sets);
       out.str(customName);
-      out.u24(muscleMask(exercise.custom));
+      out.u24(muscleMask(split.muscles, split.cardio));
+      out.u24(muscleMask(split.secondary, false));
     }
   }
   return out.bytes();
 }
 
-function unpackDays(data: Uint8Array): SharedDay[] {
+function unpackDays(data: Uint8Array, prefixVersion: number): SharedDay[] {
   const reader = new ByteReader(data);
   const version = reader.u8();
-  if (version !== SHARE_VERSION) throw new ShareError(version > SHARE_VERSION ? NEWER_VERSION_MESSAGE : BAD_CODE_MESSAGE);
+  if (version !== prefixVersion || version < 1) throw new ShareError(BAD_CODE_MESSAGE);
+  if (version > SHARE_VERSION) throw new ShareError(NEWER_VERSION_MESSAGE);
   const count = reader.u8();
   if (count < 1 || count > MAX_DAYS) throw new ShareError(BAD_CODE_MESSAGE);
   const days: SharedDay[] = [];
@@ -193,8 +198,19 @@ function unpackDays(data: Uint8Array): SharedDay[] {
       }
       const customName = cleanName(reader.str());
       if (!customName) throw new ShareError(BAD_CODE_MESSAGE);
-      const custom = musclesFromMask(reader.u24());
-      exercises.push({ name: customName, sets, catalogueIndex: null, custom });
+      const main = musclesFromMask(reader.u24());
+      let secondary: string[] = [];
+      if (version >= 2) {
+        const extra = musclesFromMask(reader.u24());
+        const taken = new Set(main.muscles);
+        secondary = extra.muscles.filter((name) => !taken.has(name));
+      }
+      exercises.push({
+        name: customName,
+        sets,
+        catalogueIndex: null,
+        custom: { muscles: main.muscles, secondary, cardio: main.cardio },
+      });
     }
     days.push({ name, color, exercises });
   }
@@ -202,17 +218,24 @@ function unpackDays(data: Uint8Array): SharedDay[] {
   return days;
 }
 
-function muscleMask(custom: SharedCustom | null): number {
+function splitSharedMuscles(custom: SharedCustom | null): { muscles: string[]; secondary: string[]; cardio: boolean } {
+  const muscles = custom?.muscles ?? [];
+  const taken = new Set(muscles.map((name) => normaliseExerciseName(name)));
+  const secondary = (custom?.secondary ?? []).filter((name) => !taken.has(normaliseExerciseName(name)));
+  return { muscles, secondary, cardio: custom?.cardio === true };
+}
+
+function muscleMask(names: readonly string[], cardio: boolean): number {
   let mask = 0;
-  for (const name of custom?.muscles ?? []) {
+  for (const name of names) {
     const index = SHARE_MUSCLE_BITS.indexOf(normaliseExerciseName(name) as (typeof SHARE_MUSCLE_BITS)[number]);
     if (index >= 0) mask |= 1 << index;
   }
-  if (custom?.cardio) mask |= 1 << HEART_BIT;
+  if (cardio) mask |= 1 << HEART_BIT;
   return mask;
 }
 
-function musclesFromMask(mask: number): SharedCustom {
+function musclesFromMask(mask: number): { muscles: string[]; cardio: boolean } {
   const muscles: string[] = [];
   SHARE_MUSCLE_BITS.forEach((name, index) => {
     if ((mask & (1 << index)) !== 0) muscles.push(name);
@@ -271,8 +294,11 @@ class ByteWriter {
 
 class ByteReader {
   private offset = 0;
+  private data: Uint8Array;
 
-  constructor(private data: Uint8Array) {}
+  constructor(data: Uint8Array) {
+    this.data = data;
+  }
 
   u8(): number {
     if (this.offset >= this.data.length) throw new ShareError(BAD_CODE_MESSAGE);
