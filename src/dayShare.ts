@@ -91,7 +91,11 @@ function exercisesForShare(dayId: string): SharedExercise[] {
       name: custom?.name ?? name,
       sets,
       catalogueIndex: null,
-      custom: { muscles: custom?.muscles ?? [], cardio: custom?.cardio === true },
+      custom: {
+        muscles: custom?.muscles ?? [],
+        secondary: custom?.secondary ?? [],
+        cardio: custom?.cardio === true,
+      },
     });
   }
   return exercises;
@@ -116,6 +120,7 @@ function storedExerciseName(exercise: SharedExercise): string {
   saveCustomExercise({
     name: exercise.name,
     muscles: exercise.custom?.muscles ?? [],
+    secondary: exercise.custom?.secondary ?? [],
     cardio: exercise.custom?.cardio === true,
   });
   return customByName(exercise.name)?.name ?? exercise.name;

@@ -22,7 +22,7 @@ import { searchByName, searchKey } from "../exerciseSearch";
 import { loadDays } from "../days";
 import { Figure } from "./Figure";
 import { MuscleEditor } from "./MuscleEditor";
-import { nameTrainsCardio, paintExercise, paintWorked } from "../muscles";
+import { nameTrainsCardio, paintCustom, paintExercise } from "../muscles";
 import { appendExerciseToDay, loadTrackerDay } from "../trackerStore";
 
 export interface ExerciseDetailRow {
@@ -45,8 +45,7 @@ export function detailForName(name: string): ExerciseDetailRow | null {
   };
 }
 
-function muscleText(exercise: CatalogueExercise, kind: "primaryMuscles" | "secondaryMuscles"): string {
-  const names = exercise[kind];
+function muscleLine(names: readonly string[]): string {
   if (names.length === 0) return "None";
   return names.map(labelize).join(", ");
 }
@@ -97,7 +96,8 @@ export function ExercisePage() {
           if (!worked.includes(mainMuscle)) return false;
         }
         if (secondaryMuscle !== "all") {
-          if (!row.exercise?.secondaryMuscles.includes(secondaryMuscle)) return false;
+          const worked = row.exercise?.secondaryMuscles ?? row.custom?.secondary ?? [];
+          if (!worked.includes(secondaryMuscle)) return false;
         }
         if (row.custom) return equipment === "all";
         if (!matchesEquipment(row.exercise, equipment)) return false;
@@ -295,7 +295,7 @@ export function ExerciseDetail({
   }
   return (
     <CustomDetail
-      item={row.custom ?? { name: row.name, muscles: [], cardio: false }}
+      item={row.custom ?? { name: row.name, muscles: [], secondary: [], cardio: false }}
       addDay={addDay}
       notice={notice}
       days={days}
@@ -341,10 +341,10 @@ function CatalogueDetail({
         {labelize(exercise.category)}
       </p>
       <p>
-        <strong>Primary.</strong> {muscleText(exercise, "primaryMuscles")}
+        <strong>Primary.</strong> {muscleLine(exercise.primaryMuscles)}
       </p>
       <p>
-        <strong>Secondary.</strong> {muscleText(exercise, "secondaryMuscles")}
+        <strong>Secondary.</strong> {muscleLine(exercise.secondaryMuscles)}
       </p>
       <div className="ex-figure">
         <Figure paint={paintExercise(exercise)} height={210} label={`${row.name} muscles`} />
@@ -411,6 +411,7 @@ function CustomDetail({
   onCustomChange: () => void;
 }) {
   const [muscles, setMuscles] = useState(item.muscles);
+  const [secondary, setSecondary] = useState(item.secondary ?? []);
   const [cardio, setCardio] = useState(item.cardio);
   const [saved, setSaved] = useState(false);
   const [stored, setStored] = useState(() => Boolean(customByName(item.name)));
@@ -425,14 +426,22 @@ function CustomDetail({
       <h2>{item.name}</h2>
       {stored ? <p className="ex-detail-meta">Custom</p> : null}
       {cardio ? <p className="heart-line">Heart & lungs</p> : null}
+      <p>
+        <strong>Primary.</strong> {muscleLine(muscles)}
+      </p>
+      <p>
+        <strong>Secondary.</strong> {muscleLine(secondary)}
+      </p>
       <div className="ex-figure">
-        <Figure paint={paintWorked(muscles)} height={180} label={`${item.name} muscles`} />
+        <Figure paint={paintCustom(muscles, secondary)} height={180} label={`${item.name} muscles`} />
       </div>
       <MuscleEditor
         muscles={muscles}
+        secondary={secondary}
         cardio={cardio}
         onChange={(next) => {
           setMuscles(next.muscles);
+          setSecondary(next.secondary);
           setCardio(next.cardio);
           setSaved(false);
         }}
@@ -445,7 +454,7 @@ function CustomDetail({
           type="button"
           className="manage-save"
           onClick={() => {
-            if (!saveCustomExercise({ name: item.name, muscles, cardio })) return;
+            if (!saveCustomExercise({ name: item.name, muscles, secondary, cardio })) return;
             setStored(true);
             setSaved(true);
             onCustomChange();

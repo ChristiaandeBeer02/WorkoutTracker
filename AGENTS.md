@@ -32,7 +32,7 @@ npm run build     # tsc --noEmit && vite build
 npm run preview   # vite preview on 127.0.0.1:4173
 ```
 
-`npm test` runs `node --experimental-strip-types --import ./test/register.mjs --test test/trackerDrafts.test.ts test/exerciseSearch.test.ts`. `test/register.mjs` maps extensionless relative imports onto `.ts` files so the tests can import app modules.
+`npm test` runs `node --experimental-strip-types --import ./test/register.mjs --test test/trackerDrafts.test.ts test/exerciseSearch.test.ts test/customExercises.test.ts test/shareCodec.test.ts`. `test/register.mjs` maps extensionless relative imports onto `.ts` files so the tests can import app modules.
 
 ## CI and GitHub Pages
 
@@ -110,10 +110,10 @@ Figure regions: `DB_MUSCLE_REGIONS` in `src/muscles.ts`. Abdominals also paint o
 
 - Search box plus filters: List (All / Custom), Main muscle, Equipment, Secondary muscle. All default to All. The filters and the search query combine with AND.
 - **All** lists custom exercises, then the catalogue. **Custom** lists saved custom exercises only.
-- **Main muscle** matches only `exercise.primaryMuscles` on catalogue rows, or a custom exercise's muscle list (that list is all main). **Secondary muscle** matches only `exercise.secondaryMuscles` on catalogue rows. Custom exercises have no secondary muscles, so a Secondary muscle other than All hides those rows. A custom row is also hidden whenever Equipment is not All. Catalogue rows match `exercise.equipment` (empty string when the catalogue value is null).
+- **Main muscle** matches only `exercise.primaryMuscles` on catalogue rows, or a custom exercise's main list (`muscles`). **Secondary muscle** matches `exercise.secondaryMuscles` on catalogue rows, or a custom exercise's `secondary` list. A custom row is hidden whenever Equipment is not All. Catalogue rows match `exercise.equipment` (empty string when the catalogue value is null).
 - With a query, rows are limited to `searchByName` hits in that source and then sorted by that ranking. With an empty query, source order is kept.
-- Opening a row pushes `exerciseDetail` on history and shows the write-up: level, equipment, category, primary and secondary muscles, figure, photo, instructions. **Add to** defaults to the current tracker day and calls `appendExerciseToDay`.
-- Catalogue detail shows **Heart & lungs** when `nameTrainsCardio`. Custom detail is the muscle editor (below). **Delete** then **Delete?** removes a stored custom exercise.
+- Opening a row pushes `exerciseDetail` on history and shows the write-up. Catalogue rows show level, equipment, category, primary and secondary muscles, figure, photo, and instructions. Custom rows show **Primary** and **Secondary** lines, the figure (main at primary opacity, secondary at the lighter opacity), and the muscle editor. **Add to** defaults to the current tracker day and calls `appendExerciseToDay`.
+- Catalogue detail shows **Heart & lungs** when `nameTrainsCardio`. Custom detail shows it when `cardio` is set. **Delete** then **Delete?** removes a stored custom exercise.
 
 ## Name search
 
@@ -145,11 +145,12 @@ Call sites: Exercise list (`universe` = the rows already chosen by List), tracke
 `src/customExercises.ts`. Storage key `workout-tracker-custom-exercises`.
 
 - Map keyed by `normaliseExerciseName`: trim, collapse whitespace, lower case. The stored `name` keeps the typed display spelling.
-- Shape: `{ name, muscles: string[], cardio: boolean }`.
+- Shape: `{ name, muscles: string[], secondary: string[], cardio: boolean }`.
 - Catalogue names are never stored. `saveCustomExercise` returns false for an empty name or a catalogue name.
-- `muscles` are unique catalogue muscle names. **Heart & lungs** is the `cardio` flag, not a muscle chip.
-- **Same muscles as** copies that catalogue exercise's primary and secondary muscles, and sets cardio when its category is `cardio`.
-- The figure in the editor is tappable (`Figure` `onPick`) and toggles the muscle for that region.
+- `muscles` are the main muscles and `secondary` are the lighter ones. Both are unique. A muscle is never in both lists; a name that is in both stays main. Catalogue names stay in `CATALOGUE_MUSCLE_NAMES` order. Other stored strings are kept after those names, so nothing already saved is dropped. A stored entry with no `secondary` loads as main only. **Heart & lungs** is the `cardio` flag, not a muscle chip.
+- Each muscle chip, and each tappable diagram region (`Figure` `onPick`), cycles off → main → secondary → off. Main uses the pressed chip style and primary opacity. Secondary uses a softer accent chip and the lighter secondary opacity. A legend reads **Tap to cycle: main, secondary, off**.
+- **Same muscles as** copies that catalogue exercise's primary muscles into main and its secondary muscles into secondary. They are not merged into one list. Cardio is set when the catalogue category is `cardio`.
+- Home shading, the covered-muscle list, and the custom figure use both lists the same way catalogue primary and secondary do.
 - Saves dispatch `workout-custom-changed`. Home and Exercise listen and repaint.
 - Unmapped means: non-empty, not in the catalogue, and not in this map.
 
@@ -179,14 +180,14 @@ The code shares names, colours, exercises, and set counts. It does not share log
 
 Format:
 
-- Prefix is `{SHARE_VERSION}.` — currently `1.`
+- Prefix is `{SHARE_VERSION}.` — currently `2.`. Codes prefixed `1.` still import.
 - The rest is the binary payload, compressed with `deflate-raw`, then URL-safe base64 ( `+` → `-`, `/` → `_`, padding stripped).
 - Payload, little-endian: version byte, day count, then each day: name, three RGB bytes, exercise count, then each exercise.
 - Name strings are a length byte plus UTF-8 (max 180 bytes). Sets are clamped to 1–99.
 - Catalogue exercise: sets in the low 7 bits, then a `u16` catalogue index. The stored name is the catalogue name at that index.
-- Custom exercise: high bit set on the sets byte, then the name, then a `u24` muscle mask. Mask bit order is `SHARE_MUSCLE_BITS` (abdominals through triceps). The next bit is Heart & lungs. Do not reorder those bits without a version bump.
+- Custom exercise: high bit set on the sets byte, then the name, then a `u24` main-muscle mask. Mask bit order is `SHARE_MUSCLE_BITS` (abdominals through triceps). The next bit is Heart & lungs. Version 2 writes a second `u24` for secondary muscles, same bit order, with no Heart & lungs bit. Version 1 has only the first mask: every muscle is main and secondary is empty. A muscle set in both masks is kept as main. Do not reorder those bits without a version bump.
 - Limits: 40 days, 80 exercises per day. Over those, or a name that is too long, throws `ShareError`.
-- A higher version is refused (`NEWER_VERSION_MESSAGE`). An index past the catalogue this build knows is treated as a newer version. Unknown bytes at the end are rejected.
+- A higher version is refused (`NEWER_VERSION_MESSAGE`). Version 1 and version 2 both import. An index past the catalogue this build knows is treated as a newer version. Unknown bytes at the end are rejected.
 - Appending to the catalogue does not need a version bump. Reordering, inserting, or changing this layout does.
 
 Link: `https://christiaandebeer02.github.io/WorkoutTracker/#import={code}`. `extractShareCode` also accepts a pasted code or an `?import=` / `#import=` URL.
@@ -200,7 +201,7 @@ Import:
 - A day name that is not already used is mode `new` (appended, no choice). A name that is already used must be **Replace** or **Add** before **Import** enables.
 - **Replace** keeps that day id and its logged history, updates the colour, and replaces the exercise list (names and set counts).
 - **Add**, or a new name, appends a new id. A clash forces a `Name (2)` style suffix.
-- Custom exercises in the code are saved locally when that normalised name is not already custom. Catalogue exercises are not written into the custom map.
+- Custom exercises in the code are saved locally when that normalised name is not already custom, including secondary muscles. Catalogue exercises are not written into the custom map.
 - Applying the import dispatches `workout-days-changed` and, for a replaced built-in day, updates the matching Colours-panel key.
 
 ## Back button
@@ -233,7 +234,7 @@ Every key is per browser. Reads tolerate missing or broken JSON. Legacy keys `wo
 | `workout-tracker-v2-lists` | `{ [dayId]: WorkoutCard[] }`. Card: `{ id, name, options: string[], sets }` with `sets >= 1`. `options` are plan alternatives; added cards use `[]`. |
 | `workout-tracker-v2-stats` | `{ version: 2, days: { [dayId]: { loggedAt: string \| null, book } } }`. `book` is `{ [trimmedName]: { sets: { weight, reps }[] } }`. Names are the submitted spelling, not normalised keys. |
 | `workout-tracker-v2-drafts` | `{ sets: { [dayId]: { [cardId]: { weight, reps }[] } }, counts: { [dayId]: { [cardId]: number } } }`. Counts are integers 1–99. The key is removed when both maps are empty. |
-| `workout-tracker-custom-exercises` | `{ [normalisedName]: { name, muscles: string[], cardio: boolean } }` |
+| `workout-tracker-custom-exercises` | `{ [normalisedName]: { name, muscles: string[], secondary: string[], cardio: boolean } }` |
 | `workout-tracker-rest` | `{ durationMs, endAt: number \| null, status: "idle" \| "running", notified }`. `durationMs` must be a preset or it resets to 90 s. |
 
 In-app events (not storage): `workout-custom-changed`, `workout-days-changed`.
