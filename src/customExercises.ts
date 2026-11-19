@@ -4,6 +4,13 @@ import { cardsForDay } from "./trackerStore";
 
 const CUSTOM_KEY = "workout-tracker-custom-exercises";
 
+export const CUSTOM_CHANGED_EVENT = "workout-custom-changed";
+
+function notifyCustomChanged(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(CUSTOM_CHANGED_EVENT));
+}
+
 export interface CustomExercise {
   name: string;
   muscles: string[];
@@ -58,6 +65,7 @@ export function saveCustomExercise(exercise: CustomExercise): boolean {
     cardio: exercise.cardio,
   };
   writeAll(book);
+  notifyCustomChanged();
   return true;
 }
 
@@ -65,6 +73,7 @@ export function deleteCustomExercise(name: string): void {
   const book = readAll();
   delete book[normaliseExerciseName(name)];
   writeAll(book);
+  notifyCustomChanged();
 }
 
 export function isUnmappedName(name: string): boolean {

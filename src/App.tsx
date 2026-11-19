@@ -7,7 +7,7 @@ import { RestBar } from "./components/RestBar";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Tracker } from "./components/Tracker";
-import { linkWarning, unmappedOnDay } from "./customExercises";
+import { CUSTOM_CHANGED_EVENT, linkWarning, unmappedOnDay } from "./customExercises";
 import { notifyDaysChanged } from "./dayShare";
 import { loadDays } from "./days";
 import { MapDialog } from "./components/MuscleEditor";
@@ -72,7 +72,14 @@ function formatWhen(iso: string): string {
 }
 
 function Page({ refresh }: { refresh: number }) {
+  const [customRev, setCustomRev] = useState(0);
+  useEffect(() => {
+    const onCustom = () => setCustomRev((value) => value + 1);
+    window.addEventListener(CUSTOM_CHANGED_EVENT, onCustom);
+    return () => window.removeEventListener(CUSTOM_CHANGED_EVENT, onCustom);
+  }, []);
   void refresh;
+  void customRev;
   const { colors, setColor, resetColors } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mapDayId, setMapDayId] = useState<string | null>(null);
