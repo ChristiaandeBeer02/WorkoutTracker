@@ -108,16 +108,16 @@ Figure regions: `DB_MUSCLE_REGIONS` in `src/muscles.ts`. Abdominals also paint o
 
 `src/components/ExercisePage.tsx`.
 
-- Search box plus filters: List (All / Custom), Muscle, Equipment, Day.
-- **All** and Day = All: custom exercises, then the catalogue. **Custom** ignores the day filter and lists saved custom exercises only. A specific day lists that day's tracker cards (blank names show as **Untitled**), not the whole catalogue.
-- Muscle matches primary or secondary catalogue muscles, or a custom exercise's muscle list. A custom row is hidden whenever Equipment is not All. Catalogue rows match `exercise.equipment` (empty string when the catalogue value is null).
+- Search box plus filters: List (All / Custom), Main muscle, Equipment, Secondary muscle. All default to All. The filters and the search query combine with AND.
+- **All** lists custom exercises, then the catalogue. **Custom** lists saved custom exercises only.
+- **Main muscle** matches only `exercise.primaryMuscles` on catalogue rows, or a custom exercise's muscle list (that list is all main). **Secondary muscle** matches only `exercise.secondaryMuscles` on catalogue rows. Custom exercises have no secondary muscles, so a Secondary muscle other than All hides those rows. A custom row is also hidden whenever Equipment is not All. Catalogue rows match `exercise.equipment` (empty string when the catalogue value is null).
 - With a query, rows are limited to `searchByName` hits in that source and then sorted by that ranking. With an empty query, source order is kept.
-- Opening a row pushes `exerciseDetail` on history and shows the write-up: level, equipment, category, primary and secondary muscles, figure, photo, instructions. **Add to** defaults to the current tracker day and calls `appendExerciseToDay`. **Untitled** cannot be added.
+- Opening a row pushes `exerciseDetail` on history and shows the write-up: level, equipment, category, primary and secondary muscles, figure, photo, instructions. **Add to** defaults to the current tracker day and calls `appendExerciseToDay`.
 - Catalogue detail shows **Heart & lungs** when `nameTrainsCardio`. Custom detail is the muscle editor (below). **Delete** then **Delete?** removes a stored custom exercise.
 
 ## Name search
 
-`src/exerciseSearch.ts`. One MiniSearch index for the catalogue (built once) and one for custom names (rebuilt only when that list changes). Matching is name-only. Muscle and equipment filters stay outside the index.
+`src/exerciseSearch.ts`. One MiniSearch index for the catalogue (built once) and one for custom names (rebuilt only when that list changes). Matching is name-only. Main muscle, secondary muscle, and equipment filters stay outside the index.
 
 Normalisation (`tokenize`, `processTerm`, `termsOf`):
 
@@ -138,7 +138,7 @@ Ranking buckets, then shorter name, then `localeCompare`:
 
 `searchByName` options: `universe` (only these names, and names outside the standing indexes are searched too), `extraNames` (merged in; ignored when `universe` is set), `customNames` (omit to read this browser's custom exercises), `limit`.
 
-Call sites: Exercise list (`universe` = the rows already chosen by List/Day), tracker suggestions (`extraNames` = plan options and logged names, then cap 20), **Same muscles as** (`customNames: []`, `limit: 6`, catalogue only).
+Call sites: Exercise list (`universe` = the rows already chosen by List), tracker suggestions (`extraNames` = plan options and logged names, then cap 20), **Same muscles as** (`customNames: []`, `limit: 6`, catalogue only).
 
 ## Custom exercises
 
