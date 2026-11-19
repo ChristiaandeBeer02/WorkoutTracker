@@ -10,6 +10,7 @@ import {
   type CatalogueExercise,
 } from "../exercises";
 import {
+  CUSTOM_CHANGED_EVENT,
   customByName,
   deleteCustomExercise,
   loadCustomExercises,
@@ -112,6 +113,12 @@ export function ExercisePage() {
   }, [query, muscle, equipment, day, list, revision]);
 
   const open = rows.find((row) => row.key === openKey) ?? null;
+
+  useEffect(() => {
+    const onCustom = () => setRevision((value) => value + 1);
+    window.addEventListener(CUSTOM_CHANGED_EVENT, onCustom);
+    return () => window.removeEventListener(CUSTOM_CHANGED_EVENT, onCustom);
+  }, []);
 
   useEffect(() => {
     const state = history.state as { exerciseDetail?: boolean } | null;
@@ -281,23 +288,55 @@ export function ExerciseDetail({
   onBack: () => void;
   onCustomChange: () => void;
 }) {
-  const exercise = row.exercise;
-  if (row.custom) {
+  if (row.exercise) {
     return (
-      <CustomDetail
-        item={row.custom}
+      <CatalogueDetail
+        row={row}
+        exercise={row.exercise}
         addDay={addDay}
         notice={notice}
         days={days}
         onAddDay={onAddDay}
         onAdd={onAdd}
         onBack={onBack}
-        onCustomChange={onCustomChange}
       />
     );
   }
+  return (
+    <CustomDetail
+      item={row.custom ?? { name: row.name, muscles: [], cardio: false }}
+      addDay={addDay}
+      notice={notice}
+      days={days}
+      onAddDay={onAddDay}
+      onAdd={onAdd}
+      onBack={onBack}
+      onCustomChange={onCustomChange}
+    />
+  );
+}
+
+function CatalogueDetail({
+  row,
+  exercise,
+  addDay,
+  notice,
+  days,
+  onAddDay,
+  onAdd,
+  onBack,
+}: {
+  row: ExerciseDetailRow;
+  exercise: CatalogueExercise;
+  addDay: string;
+  notice: string;
+  days: Array<{ id: string; name: string }>;
+  onAddDay: (day: string) => void;
+  onAdd: () => void;
+  onBack: () => void;
+}) {
   const [imageFailed, setImageFailed] = useState(false);
-  const photo = exercise?.images[0];
+  const photo = exercise.images[0];
 
   return (
     <article className="ex-detail">
@@ -306,46 +345,40 @@ export function ExerciseDetail({
       </button>
       <h2>{row.name}</h2>
       {nameTrainsCardio(row.name) ? <p className="heart-line">Heart & lungs</p> : null}
-      {exercise ? (
-        <>
-          <p className="ex-detail-meta">
-            {labelize(exercise.level)} · {exercise.equipment ? labelize(exercise.equipment) : "No equipment"} ·{" "}
-            {labelize(exercise.category)}
-          </p>
-          <p>
-            <strong>Primary.</strong> {muscleText(exercise, "primaryMuscles")}
-          </p>
-          <p>
-            <strong>Secondary.</strong> {muscleText(exercise, "secondaryMuscles")}
-          </p>
-          <div className="ex-figure">
-            <Figure paint={paintExercise(exercise)} height={210} label={`${row.name} muscles`} />
-          </div>
-          {photo ? (
-            imageFailed ? (
-              <p className="ex-photo-miss">Photo unavailable offline.</p>
-            ) : (
-              <img
-                className="ex-photo"
-                src={exerciseImageUrl(photo)}
-                alt=""
-                loading="lazy"
-                onError={() => setImageFailed(true)}
-              />
-            )
-          ) : null}
-          {exercise.instructions.length > 0 ? (
-            <ol className="ex-steps">
-              {exercise.instructions.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-          ) : (
-            <p>No instructions in the catalogue.</p>
-          )}
-        </>
+      <p className="ex-detail-meta">
+        {labelize(exercise.level)} · {exercise.equipment ? labelize(exercise.equipment) : "No equipment"} ·{" "}
+        {labelize(exercise.category)}
+      </p>
+      <p>
+        <strong>Primary.</strong> {muscleText(exercise, "primaryMuscles")}
+      </p>
+      <p>
+        <strong>Secondary.</strong> {muscleText(exercise, "secondaryMuscles")}
+      </p>
+      <div className="ex-figure">
+        <Figure paint={paintExercise(exercise)} height={210} label={`${row.name} muscles`} />
+      </div>
+      {photo ? (
+        imageFailed ? (
+          <p className="ex-photo-miss">Photo unavailable offline.</p>
+        ) : (
+          <img
+            className="ex-photo"
+            src={exerciseImageUrl(photo)}
+            alt=""
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+          />
+        )
+      ) : null}
+      {exercise.instructions.length > 0 ? (
+        <ol className="ex-steps">
+          {exercise.instructions.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
       ) : (
-        <p>The catalogue has no exercise with this exact name.</p>
+        <p>No instructions in the catalogue.</p>
       )}
       <div className="add-day">
         <label>
@@ -389,6 +422,7 @@ function CustomDetail({
   const [muscles, setMuscles] = useState(item.muscles);
   const [cardio, setCardio] = useState(item.cardio);
   const [saved, setSaved] = useState(false);
+  const [stored, setStored] = useState(() => Boolean(customByName(item.name)));
   const [confirmDelete, setConfirmDelete] = useState(false);
   useDismissOnBack(confirmDelete, () => setConfirmDelete(false));
 
@@ -398,7 +432,7 @@ function CustomDetail({
         ‹ Back
       </button>
       <h2>{item.name}</h2>
-      <p className="ex-detail-meta">Custom</p>
+      {stored ? <p className="ex-detail-meta">Custom</p> : null}
       {cardio ? <p className="heart-line">Heart & lungs</p> : null}
       <div className="ex-figure">
         <Figure paint={paintWorked(muscles)} height={180} label={`${item.name} muscles`} />
@@ -420,7 +454,8 @@ function CustomDetail({
           type="button"
           className="manage-save"
           onClick={() => {
-            saveCustomExercise({ name: item.name, muscles, cardio });
+            if (!saveCustomExercise({ name: item.name, muscles, cardio })) return;
+            setStored(true);
             setSaved(true);
             onCustomChange();
           }}
@@ -429,21 +464,23 @@ function CustomDetail({
         </button>
       </div>
       {saved ? <p className="tracker-notice">Saved</p> : null}
-      <button
-        type="button"
-        className={confirmDelete ? "remove-workout confirm" : "remove-workout"}
-        onClick={() => {
-          if (!confirmDelete) {
-            setConfirmDelete(true);
-            return;
-          }
-          deleteCustomExercise(item.name);
-          onCustomChange();
-          onBack();
-        }}
-      >
-        {confirmDelete ? "Delete?" : "Delete"}
-      </button>
+      {stored ? (
+        <button
+          type="button"
+          className={confirmDelete ? "remove-workout confirm" : "remove-workout"}
+          onClick={() => {
+            if (!confirmDelete) {
+              setConfirmDelete(true);
+              return;
+            }
+            deleteCustomExercise(item.name);
+            onCustomChange();
+            onBack();
+          }}
+        >
+          {confirmDelete ? "Delete?" : "Delete"}
+        </button>
+      ) : null}
       <div className="add-day">
         <label>
           Add to
