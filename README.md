@@ -2,6 +2,8 @@
 
 A phone-first workout log. Home shows the last session for each day, and the muscles those days train.
 
+Coding agents: read [AGENTS.md](AGENTS.md) before changing this repo, and update it in the same pull request when behaviour changes.
+
 Muscle figures use path data from [MuscleMap](https://github.com/Jsplice/MuscleMap) (MIT). The notice is in `src/anatomy.ts`.
 
 The exercise catalogue is [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense), bundled for offline search. Photos load from that repository the first time they are opened.
